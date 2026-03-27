@@ -6,7 +6,7 @@
 'use strict';
 
 // ── VERSION ───────────────────────────────────────────────────────────────────
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 
 // ── GLOBAL STATE ──────────────────────────────────────────────────────────────
 const State = {
@@ -640,7 +640,8 @@ function renderArtistGrid() {
   }
   empty.classList.add('hidden');
 
-  list.artists.forEach((artist, idx) => {
+  const sorted = [...list.artists].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  sorted.forEach((artist, idx) => {
     const card = document.createElement('div');
     card.className = 'artist-card';
     card.style.animationDelay = `${idx * 0.04}s`;
@@ -2349,7 +2350,20 @@ function bindAllEvents() {
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
   {
-    version: '1.0.1',
+    version: '1.0.2',
+    date: '2026-03-27',
+    label: { de: 'Bugfix Release', en: 'Bugfix Release' },
+    added: {
+      de: ['Artists werden alphabetisch sortiert angezeigt'],
+      en: ['Artist grid now sorted alphabetically'],
+    },
+    changed: {
+      de: ['Artist-Grid von 3 auf 2 Spalten umgestellt — größere Bilder, mehr Platz'],
+      en: ['Artist grid switched from 3 to 2 columns — larger images, more breathing room'],
+    },
+  },
+  {
+    version: '1.0.2',
     date: '2026-03-27',
     label: { de: 'Bugfix Release', en: 'Bugfix Release' },
     added: {

@@ -2,12 +2,22 @@
 
 All notable changes to Music Shuffle will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.1/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.2/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.0.1] — 2026-03-27 — Bugfix Release
+## [1.0.2] — 2026-03-27 — Bugfix Release
+
+### Added
+- Artist grid now sorted alphabetically
+
+### Changed
+- Artist grid switched from 3 to 2 columns — larger images, more breathing room
+
+---
+
+## [1.0.2] — 2026-03-27 — Bugfix Release
 
 ### Added
 - Filter toggle buttons for year range — filters are now off by default, click to activate
@@ -19,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.1] — 2026-03-26 — Initial Release
+## [1.0.2] — 2026-03-26 — Initial Release
 
 ### Added
 - **Full discography shuffle** — random tracks from entire album catalog, not just top 10
