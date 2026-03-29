@@ -6,7 +6,7 @@
 'use strict';
 
 // ── VERSION ───────────────────────────────────────────────────────────────────
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 
 // ── GLOBAL STATE ──────────────────────────────────────────────────────────────
 const State = {
@@ -1290,7 +1290,10 @@ function pickSmartArtist(artists) {
 // ── SHUFFLE LOGIC ──────────────────────────────────────────────────────────────
 async function doShuffle() {
   const list = getActiveList();
-  if (!list || !list.artists?.length) {
+  const hasArtists = list?.artists?.length > 0;
+  const hasAlbums = list?.albums?.length > 0;
+  const hasGenres = list?.genres?.length > 0;
+  if (!list || (!hasArtists && !hasAlbums && !hasGenres)) {
     showToast(I18N.t('toast_no_artists'), 'error');
     return;
   }
@@ -1305,24 +1308,25 @@ async function doShuffle() {
     : new Set();
 
   const filters = list.filters || defaultFilters();
-  const hasArtists = list.artists?.length > 0;
-  const hasGenres = list.genres?.length > 0;
-  const hasAlbums = list.albums?.length > 0;
 
-  // Pick randomly between artist, album and genre
-  const rand = Math.random();
-  const totalSources = (hasArtists ? 1 : 0) + (hasAlbums ? 1 : 0) + (hasGenres ? 0.3 : 0);
-  const useGenre = hasGenres && rand < 0.3 / totalSources;
-  const useAlbum = !useGenre && hasAlbums && (!hasArtists || rand < (hasAlbums ? 0.5 : 0));
+  // Build pool of all sources — each artist and album as equal entry
+  const pool = [];
+  if (hasArtists) list.artists.forEach(a => pool.push({ type: 'artist', data: a }));
+  if (hasAlbums) list.albums.forEach(a => pool.push({ type: 'album', data: a }));
+  if (hasGenres) list.genres.forEach(g => pool.push({ type: 'genre', data: g }));
+
+  const picked = pool[Math.floor(Math.random() * pool.length)];
+  const useAlbum = picked.type === 'album';
+  const useGenre = picked.type === 'genre';
 
   try {
     let track = null;
 
     if (useGenre) {
-      const genre = list.genres[Math.floor(Math.random() * list.genres.length)];
+      const genre = picked.data;
       track = await SpotifyAPI.getRandomTrackByGenre(genre, filters, blacklistSet);
     } else if (useAlbum) {
-      const album = list.albums[Math.floor(Math.random() * list.albums.length)];
+      const album = picked.data;
       track = await SpotifyAPI.getRandomTrackFromAlbum(album.id, album, blacklistSet, State.historyIds, State.onlyNew);
       if (track) {
         State.shuffleLog.unshift({
@@ -1334,7 +1338,7 @@ async function doShuffle() {
         if (State.shuffleLog.length > 20) State.shuffleLog.pop();
       }
     } else if (hasArtists) {
-      const artist = pickSmartArtist(list.artists);
+      const artist = State.smartShuffle ? pickSmartArtist(list.artists) : picked.data;
       track = await SpotifyAPI.getRandomTrack(
         artist.id, filters, blacklistSet, State.historyIds, State.onlyNew
       );
@@ -1388,7 +1392,11 @@ async function playTrack(track) {
 
 async function fillQueue() {
   const list = getActiveList();
-  if (!list || !list.artists?.length) return;
+  if (!list) return;
+
+  const hasArtists = list.artists?.length > 0;
+  const hasAlbums = list.albums?.length > 0;
+  if (!hasArtists && !hasAlbums) return;
 
   const needed = 2 - State.queue.length;
   if (needed <= 0) return;
@@ -1398,15 +1406,24 @@ async function fillQueue() {
     : new Set();
   const filters = list.filters || defaultFilters();
 
-  // Fill one at a time with delay to avoid 429
   for (let i = 0; i < needed; i++) {
-    const artist = pickSmartArtist(list.artists);
-    const track = artist ? await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew).catch(() => null) : null;
+    let track = null;
+
+    // Pick randomly between artists and albums
+    const useAlbum = hasAlbums && (!hasArtists || Math.random() < 0.4);
+
+    if (useAlbum) {
+      const album = list.albums[Math.floor(Math.random() * list.albums.length)];
+      track = await SpotifyAPI.getRandomTrackFromAlbum(album.id, album, blacklistSet, State.historyIds, State.onlyNew).catch(() => null);
+    } else if (hasArtists) {
+      const artist = State.smartShuffle ? pickSmartArtist(list.artists) : picked.data;
+      track = artist ? await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew).catch(() => null) : null;
+    }
+
     if (track && !State.queue.find(q => q.id === track.id)) {
       State.queue.push(track);
       renderQueue();
     }
-    // Delay between requests to avoid rate limiting
     await new Promise(r => setTimeout(r, 1000));
   }
 
@@ -1414,13 +1431,16 @@ async function fillQueue() {
 }
 
 async function playNextFromQueue() {
-  if (!State.queue.length) await fillQueue();
-  if (!State.queue.length) { showToast(I18N.t('toast_queue_empty'), 'info'); return; }
-
-  const track = State.queue.shift();
-  renderQueue();
-  await playTrack(track);
-  setTimeout(() => fillQueue(), 5000);
+  // If queue has a track, play it immediately
+  if (State.queue.length) {
+    const track = State.queue.shift();
+    renderQueue();
+    await playTrack(track);
+    setTimeout(() => fillQueue(), 5000);
+    return;
+  }
+  // Queue empty — just shuffle a new track directly
+  await doShuffle();
 }
 
 async function playPrevFromHistory() {
@@ -2708,6 +2728,35 @@ function bindAllEvents() {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
+  {
+    version: '1.1.1',
+    date: '2026-03-29',
+    label: { de: 'Bugfix Release', en: 'Bugfix Release' },
+    fixed: {
+      de: [
+        'Shuffle vollkommen zufällig aus allen Quellen — Artists, Alben und Genres gleichberechtigt',
+        'Listen mit nur Alben funktionieren jetzt korrekt',
+        'Skip ist sofort wenn Queue gefüllt ist',
+        'Leere Queue fällt direkt auf Shuffle zurück',
+      ],
+      en: [
+        'Shuffle truly random across all sources — artists, albums and genres equal pool',
+        'Albums-only lists now work correctly',
+        'Skip is instant when queue has tracks',
+        'Empty queue falls back to direct shuffle',
+      ],
+    },
+    changed: {
+      de: [
+        'Jeder Artist und jedes Album hat gleiche Chance gezogen zu werden',
+        'Smart Shuffle bleibt aktiv — wenig gespielte Artists kommen öfter dran',
+      ],
+      en: [
+        'Each artist and album has equal chance of being picked',
+        'Smart Shuffle still active — less played artists get higher weight',
+      ],
+    },
+  },
   {
     version: '1.1.0',
     date: '2026-03-28',

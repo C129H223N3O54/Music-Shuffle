@@ -2,12 +2,27 @@
 
 All notable changes to Music Shuffle will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.1/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.1.0] — 2026-03-28 — Mobile & Albums Release
+## [1.1.1] — 2026-03-29 — Bugfix Release
+
+### Fixed
+- Shuffle now truly random across all sources — artists, albums and genres in one equal pool
+- Albums-only lists now work correctly (no "no artists" error)
+- Skip now instant when queue has tracks — no delay
+- Empty queue falls back to direct shuffle instead of waiting
+
+### Changed
+- Each artist and album has equal chance of being picked (1 entry each in pool)
+- Artists with more albums naturally provide more variety when selected
+- Smart Shuffle still applies — artists not played recently get higher weight
+
+---
+
+## [1.1.1] — 2026-03-28 — Mobile & Albums Release
 
 ### Added
 - **Album support** — add individual albums to lists via artist discography browser
@@ -38,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] — 2026-03-27 — Bugfix Release
+## [1.1.1] — 2026-03-27 — Bugfix Release
 
 ### Added
 - Artist grid now sorted alphabetically
@@ -48,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] — 2026-03-27 — Bugfix Release
+## [1.1.1] — 2026-03-27 — Bugfix Release
 
 ### Added
 - Filter toggle buttons for year range — filters are now off by default, click to activate
@@ -60,7 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] — 2026-03-26 — Initial Release
+## [1.1.1] — 2026-03-26 — Initial Release
 
 ### Added
 - **Full discography shuffle** — random tracks from entire album catalog, not just top 10
