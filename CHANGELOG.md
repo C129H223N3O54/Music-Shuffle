@@ -2,12 +2,35 @@
 
 All notable changes to Music Shuffle will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.1/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.2/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [1.1.1] — 2026-03-29 — Bugfix Release
+## [1.1.2] — 2026-03-29 — Cleanup & Balance Release
+
+### Added
+- Artist section header with count — "🎤 Künstler (31)" above artist grid
+- Album section now shows count — "🎵 Alben (2)"
+- Section headers switch language with DE/EN toggle
+
+### Changed
+- Artist pool weight increased to 3× vs albums (1×) — prevents single albums from dominating shuffle
+- Complete code rewrite — app.js reduced from 3039 to ~1900 lines (−37%)
+- spotify-api.js reduced from 651 to 300 lines (−54%)
+- Startup API calls delayed to reduce 429 rate limiting on page load
+- Device auto-refresh every 2 minutes (was 30 seconds)
+- Player state polling every 15 seconds (was 5 seconds)
+
+### Fixed
+- fillQueue referenced undefined variable — next track now always works
+- duplicateActiveList now correctly copies albums
+- Dead code removed (Like section, unused functions)
+- Sync helper consolidated into single request method
+
+---
+
+## [1.1.2] — 2026-03-29 — Bugfix Release
 
 ### Fixed
 - Shuffle now truly random across all sources — artists, albums and genres in one equal pool
@@ -22,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.1] — 2026-03-28 — Mobile & Albums Release
+## [1.1.2] — 2026-03-28 — Mobile & Albums Release
 
 ### Added
 - **Album support** — add individual albums to lists via artist discography browser
@@ -53,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.1] — 2026-03-27 — Bugfix Release
+## [1.1.2] — 2026-03-27 — Bugfix Release
 
 ### Added
 - Artist grid now sorted alphabetically
@@ -63,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.1] — 2026-03-27 — Bugfix Release
+## [1.1.2] — 2026-03-27 — Bugfix Release
 
 ### Added
 - Filter toggle buttons for year range — filters are now off by default, click to activate
@@ -75,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.1] — 2026-03-26 — Initial Release
+## [1.1.2] — 2026-03-26 — Initial Release
 
 ### Added
 - **Full discography shuffle** — random tracks from entire album catalog, not just top 10
