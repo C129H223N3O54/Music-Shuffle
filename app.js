@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════
-   MUSIC SHUFFLE — app.js  v1.2.0
+   MUSIC SHUFFLE — app.js  v1.3.1
    ═══════════════════════════════════════════════════════ */
 'use strict';
 
 // ── VERSION ───────────────────────────────────────────────────────────────────
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.1';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const State = {
@@ -36,6 +36,11 @@ const State = {
   _autoNextPending: false,
   smartShuffle: true,
   shuffleLog: [],
+  artistTrackHistory: {}, // { artistId: [trackId, trackId, ...] }
+  roundRobin: false,      // Round-Robin Modus: je ein Song pro Artist reihum
+  _rrQueue: [],           // gemischte Artist-Reihenfolge für aktuellen Durchlauf
+  _rrIndex: 0,            // aktueller Index in _rrQueue
+  _artistCooldown: [],    // [ {artistId, remaining} ] — gesperrte Artists nach RR-Deaktivierung
 };
 
 // ── LOCAL STORAGE ─────────────────────────────────────────────────────────────
@@ -72,7 +77,7 @@ const LS = {
   },
 };
 
-function defaultFilters() { return { noLive: false, noInstrumental: false, yearFrom: null, yearTo: null }; }
+function defaultFilters() { return { noLive: false, noInstrumental: false, noAcoustic: false, noOrchestral: false, artistRepeatLimit: 3, yearFrom: null, yearTo: null }; }
 
 // ── SYNC ──────────────────────────────────────────────────────────────────────
 const Sync = {
@@ -326,6 +331,7 @@ function onPlayerStateChanged(state) {
       artist:   track.artists?.[0]?.name || '—',
       artistId: track.artists?.[0]?.uri?.split(':')[2],
       album:    track.album?.name || '—',
+      albumId:  track.album?.uri?.split(':')[2] || null,
       albumArt: track.album?.images?.[0]?.url || '',
       duration: state.duration,
     };
@@ -866,6 +872,10 @@ function updateFiltersUI() {
   const f    = list?.filters || defaultFilters();
   document.getElementById('filter-no-live').checked = !!f.noLive;
   document.getElementById('filter-no-instrumental').checked = !!f.noInstrumental;
+  document.getElementById('filter-no-acoustic').checked = !!f.noAcoustic;
+  document.getElementById('filter-no-orchestral').checked = !!f.noOrchestral;
+  const repeatLimit = document.getElementById('filter-artist-repeat-limit');
+  if (repeatLimit) repeatLimit.value = f.artistRepeatLimit ?? 3;
 
   const fromInput = document.getElementById('filter-year-from');
   const fromBtn   = document.getElementById('filter-year-from-toggle');
@@ -886,6 +896,9 @@ function saveFilters() {
   list.filters = {
     noLive:          document.getElementById('filter-no-live').checked,
     noInstrumental:  document.getElementById('filter-no-instrumental').checked,
+    noAcoustic:      document.getElementById('filter-no-acoustic').checked,
+    noOrchestral:    document.getElementById('filter-no-orchestral').checked,
+    artistRepeatLimit: parseInt(document.getElementById('filter-artist-repeat-limit').value, 10) || 3,
     yearFrom:        parseInt(document.getElementById('filter-year-from').value, 10) || null,
     yearTo:          parseInt(document.getElementById('filter-year-to').value,   10) || null,
   };
@@ -896,6 +909,9 @@ function updateFiltersBadge(f) {
   let n = 0;
   if (f.noLive)          n++;
   if (f.noInstrumental)  n++;
+  if (f.noAcoustic)      n++;
+  if (f.noOrchestral)    n++;
+  if (f.artistRepeatLimit && f.artistRepeatLimit !== 3) n++;
   if (f.yearFrom)        n++;
   if (f.yearTo)          n++;
   const badge = document.getElementById('filters-badge');
@@ -954,7 +970,32 @@ async function doShuffle() {
 
   const blacklistSet = State.blacklistEnabled ? new Set(State.blacklist.map(b => b.id)) : new Set();
   const filters      = list.filters || defaultFilters();
-  const picked       = pool[Math.floor(Math.random() * pool.length)];
+
+  // Round-Robin: nächsten Artist aus der gemischten Reihenfolge wählen
+  let picked;
+  if (State.roundRobin && list.artists?.length) {
+    // Nur Artists im Pool, keine Alben/Genres für Round-Robin
+    const artists = list.artists;
+    if (!State._rrQueue.length || State._rrIndex >= State._rrQueue.length) {
+      // Neu mischen
+      State._rrQueue = [...artists].sort(() => Math.random() - 0.5).map(a => ({ type: 'artist', data: a }));
+      State._rrIndex = 0;
+    }
+    picked = State._rrQueue[State._rrIndex++];
+  } else {
+    // Artist-Cooldown nach Round-Robin: gesperrte Artists aus Pool filtern
+    let filteredPool = pool;
+    if (State._artistCooldown.length) {
+      const cooledIds = new Set(State._artistCooldown.map(x => x.artistId));
+      const reduced = pool.filter(p => p.type !== 'artist' || !cooledIds.has(p.data.id));
+      if (reduced.length) filteredPool = reduced;
+      // Cooldown runterzählen
+      State._artistCooldown = State._artistCooldown
+        .map(x => ({ ...x, remaining: x.remaining - 1 }))
+        .filter(x => x.remaining > 0);
+    }
+    picked = filteredPool[Math.floor(Math.random() * filteredPool.length)];
+  }
 
   try {
     let track = null;
@@ -966,7 +1007,7 @@ async function doShuffle() {
       if (track) State.shuffleLog.unshift({ trackName: track.name, artistName: picked.data.artistName, reason: '💿 Album', ts: Date.now() });
     } else {
       const artist = State.smartShuffle ? pickSmartArtist(list.artists) : picked.data;
-      track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew);
+      track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew, State.artistTrackHistory, filters.artistRepeatLimit ?? 3);
       if (track) State.shuffleLog.unshift({ trackName: track.name, artistName: artist.name, reason: artist.favorite ? '⭐ Favorit' : State.smartShuffle ? '🧠 Smart' : '🎲 Zufall', ts: Date.now() });
     }
 
@@ -1001,14 +1042,24 @@ async function fillQueue() {
   const filters      = list.filters || defaultFilters();
 
   for (let i = 0; i < needed; i++) {
-    const picked = pool[Math.floor(Math.random() * pool.length)];
+    let picked;
+    // Round-Robin: Queue-Tracks auch reihum aus Artists wählen
+    if (State.roundRobin && list.artists?.length) {
+      if (!State._rrQueue.length || State._rrIndex >= State._rrQueue.length) {
+        State._rrQueue = [...list.artists].sort(() => Math.random() - 0.5).map(a => ({ type: 'artist', data: a }));
+        State._rrIndex = 0;
+      }
+      picked = State._rrQueue[State._rrIndex++];
+    } else {
+      picked = pool[Math.floor(Math.random() * pool.length)];
+    }
     let track = null;
     try {
       if (picked.type === 'album') {
         track = await SpotifyAPI.getRandomTrackFromAlbum(picked.data.id, picked.data, blacklistSet, State.historyIds, State.onlyNew);
       } else {
-        const artist = State.smartShuffle ? pickSmartArtist(list.artists) : picked.data;
-        if (artist) track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew);
+        const artist = State.roundRobin ? picked.data : (State.smartShuffle ? pickSmartArtist(list.artists) : picked.data);
+        if (artist) track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew, State.artistTrackHistory, filters.artistRepeatLimit ?? 3);
       }
     } catch {}
     if (track && !State.queue.find(q => q.id === track.id)) { State.queue.push(track); renderQueue(); }
@@ -1176,6 +1227,12 @@ function checkAndAddToHistory(track) {
   State.history.unshift({ ...track });
   if (State.history.length > 20) State.history.pop();
   State.historyIds.add(track.id);
+  // Artist-Track-History pflegen
+  if (track.artistId) {
+    if (!State.artistTrackHistory[track.artistId]) State.artistTrackHistory[track.artistId] = [];
+    if (!State.artistTrackHistory[track.artistId].includes(track.id))
+      State.artistTrackHistory[track.artistId].push(track.id);
+  }
   renderHistory();
   trackPlay(track);
 }
@@ -1191,7 +1248,7 @@ function renderHistory() {
   }
   empty?.classList.add('hidden');
   State.history.forEach((track, idx) => {
-    const item = createTrackItem(track, idx, [{ icon: '▶', title: 'Abspielen', action: () => playTrack(track) }]);
+    const item = createTrackItem(track, idx, [{ icon: '▶', title: 'Abspielen', action: () => playTrack(track) }, { icon: '🚫', title: 'Zur Blacklist hinzufügen', action: () => addToBlacklist(track) }]);
     if (track.id === State.currentTrack?.id) item.classList.add('playing');
     list.appendChild(item);
   });
@@ -1225,6 +1282,39 @@ function addToBlacklist(track) {
   LS.save(); renderBlacklist();
   showToast(`"${track.name}" zur Blacklist hinzugefügt`, 'info');
   playNextFromQueue();
+}
+
+async function addAlbumToBlacklist() {
+  const track = State.currentTrack;
+  if (!track) return;
+  // Album-ID aus dem aktuellen Track holen
+  const albumId = track.albumId || null;
+  if (!albumId) {
+    // Fallback: nur aktuellen Track blacklisten
+    addToBlacklist(track);
+    return;
+  }
+  try {
+    const token = await SpotifyAPI.getToken();
+    const res = await fetch(`https://api.spotify.com/v1/albums/${albumId}/tracks?limit=50&market=from_token`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Album nicht ladbar');
+    const data = await res.json();
+    const tracks = data.items || [];
+    let added = 0;
+    tracks.forEach(t => {
+      if (!State.blacklist.find(b => b.id === t.id)) {
+        State.blacklist.push({ id: t.id, name: t.name, artist: track.artist, albumArt: track.albumArt });
+        added++;
+      }
+    });
+    LS.save(); renderBlacklist();
+    showToast(`💿 "${track.album}" — ${added} Tracks zur Blacklist hinzugefügt`, 'info');
+    if (added > 0) playNextFromQueue();
+  } catch (err) {
+    showToast('Fehler beim Laden des Albums: ' + err.message, 'error');
+  }
 }
 
 function removeFromBlacklist(trackId) {
@@ -1753,6 +1843,7 @@ function bindAllEvents() {
 
   // Blacklist
   document.getElementById('blacklist-btn').addEventListener('click', () => { if (State.currentTrack) addToBlacklist(State.currentTrack); });
+  document.getElementById('blacklist-album-btn').addEventListener('click', () => { addAlbumToBlacklist(); });
   document.getElementById('blacklist-toggle').addEventListener('change', e => { State.blacklistEnabled = e.target.checked; localStorage.setItem('as_blacklist_enabled', State.blacklistEnabled); });
 
   // Progress bar
@@ -1803,6 +1894,9 @@ function bindAllEvents() {
   // Filters
   document.getElementById('filter-no-live').addEventListener('change', saveFilters);
   document.getElementById('filter-no-instrumental').addEventListener('change', saveFilters);
+  document.getElementById('filter-no-acoustic').addEventListener('change', saveFilters);
+  document.getElementById('filter-no-orchestral').addEventListener('change', saveFilters);
+  document.getElementById('filter-artist-repeat-limit').addEventListener('change', saveFilters);
   document.getElementById('filter-year-from').addEventListener('change', saveFilters);
   document.getElementById('filter-year-to').addEventListener('change', saveFilters);
   ['from', 'to'].forEach(dir => {
@@ -1839,6 +1933,25 @@ function bindAllEvents() {
   if (autoSkipBtn) {
     autoSkipBtn.classList.toggle('active', State.autoSkip);
     autoSkipBtn.addEventListener('click', () => { State.autoSkip = !State.autoSkip; autoSkipBtn.classList.toggle('active', State.autoSkip); showToast(State.autoSkip ? I18N.t('toast_autoskip_on') : I18N.t('toast_autoskip_off'), 'info'); });
+  }
+
+  const roundRobinBtn = document.getElementById('round-robin-btn');
+  if (roundRobinBtn) {
+    roundRobinBtn.classList.toggle('active', State.roundRobin);
+    roundRobinBtn.addEventListener('click', () => {
+      State.roundRobin = !State.roundRobin;
+      if (!State.roundRobin) {
+        // Letzte 5 gespielte Artists für je 5 Songs sperren
+        const recent = State.history.slice(0, 5)
+          .filter(t => t.artistId)
+          .reduce((acc, t) => { if (!acc.find(x => x.artistId === t.artistId)) acc.push({ artistId: t.artistId, remaining: 5 }); return acc; }, []);
+        State._artistCooldown = recent;
+        console.log('[RR] Cooldown gesetzt für', recent.map(x => x.artistId));
+      }
+      State._rrQueue = []; State._rrIndex = 0;
+      roundRobinBtn.classList.toggle('active', State.roundRobin);
+      showToast(State.roundRobin ? '🔁 Round Robin aktiv — je ein Song pro Artist' : '🔁 Round Robin deaktiviert', 'info');
+    });
   }
 
   // Smart Shuffle
@@ -1878,6 +1991,54 @@ function bindAllEvents() {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
+  {
+    version: '1.3.1',
+    date: '2026-04-22',
+    label: { de: 'Album Blacklist', en: 'Album Blacklist' },
+    added: {
+      de: ['Album-Blacklist-Button in den Player-Controls — ganzes Album auf einmal sperren (💿-Button neben dem Track-Blacklist-Button)'],
+      en: ['Album blacklist button in player controls — blacklist entire album at once (💿 button next to track blacklist button)'],
+    },
+    fixed: {
+      de: ['Album-ID wird jetzt im currentTrack gespeichert — wird für Album-Blacklist benötigt'],
+      en: ['Album ID now stored in currentTrack — required for album blacklist feature'],
+    },
+  },
+  {
+    version: '1.3.0',
+    date: '2026-04-22',
+    label: { de: 'Filter & Shuffle Release', en: 'Filter & Shuffle Release' },
+    added: {
+      de: [
+        'Akustik-Filter — Tracks mit "acoustic", "unplugged", "stripped" usw. im Track- oder Albumnamen ausblenden (pro Liste)',
+        'Orchestral-Filter — Tracks mit "orchestral" im Track- oder Albumnamen ausblenden (pro Liste)',
+        'Artist-Wiederholung konfigurierbar — Anzahl der Tracks zwischen zwei Tracks desselben Artists einstellbar (pro Liste)',
+        'Blacklist-Button direkt im Verlauf — 🚫 neben jedem Track ohne Shortcut-Workaround',
+        'Round-Robin Modus — je ein Song pro Artist reihum, zufällig gemischt, Button im Player',
+        'Track-Sperre pro Artist — jeder Track wird erst wieder gespielt wenn die gesamte Diskografie durch ist',
+      ],
+      en: [
+        'Acoustic filter — hide tracks with "acoustic", "unplugged", "stripped" etc. in track or album name (per list)',
+        'Orchestral filter — hide tracks with "orchestral" in track or album name (per list)',
+        'Artist repeat limit configurable — set number of tracks between repeats of the same artist (per list)',
+        'Blacklist button in history — 🚫 next to every track without needing the keyboard shortcut',
+        'Round Robin mode — one song per artist in turn, randomly shuffled, button in player',
+        'Per-artist track lock — each track is only repeated after the entire discography has been played',
+      ],
+    },
+    changed: {
+      de: [
+        'Live-Filter prüft jetzt auch den Tracknamen — "Far from the Fame - Live, at Wacken" wird korrekt gefiltert',
+        'Artist-Cooldown nach Round-Robin — die letzten 5 Artists werden nach Deaktivierung für 5 Songs gesperrt',
+        'fillQueue im Round-Robin nutzt dieselbe Artist-Reihenfolge wie doShuffle — kein Durcheinander mehr',
+      ],
+      en: [
+        'Live filter now also checks track name — "Far from the Fame - Live, at Wacken" correctly filtered',
+        'Artist cooldown after Round Robin — last 5 artists locked for 5 songs after deactivation',
+        'fillQueue in Round Robin uses same artist order as doShuffle — no more out-of-order picks',
+      ],
+    },
+  },
   {
     version: '1.2.0',
     date: '2026-04-03',

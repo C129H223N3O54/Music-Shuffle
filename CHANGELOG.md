@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] — 2026-04-22 — Album Blacklist
+
+### Added
+- **Album blacklist button** — new button in player secondary controls (💿, next to the track blacklist button) that adds all tracks of the currently playing album to the blacklist at once; shows a toast with the count of added tracks and skips to the next song automatically
+
+### Fixed
+- Album ID is now stored in `currentTrack` state — this was required for the album blacklist feature to work correctly
+
+---
+
+## [1.3.0] — 2026-04-22 — Filter & Shuffle Release
+
+### Added
+- **Acoustic filter** — per-list toggle to hide tracks with "acoustic", "unplugged", "stripped", "acoustique", "akustik" in track or album name
+- **Orchestral filter** — per-list toggle to hide tracks with "orchestral" in track or album name
+- **Artist repeat limit** — configurable per list: set how many tracks must play between repeats of the same artist (default: 3, range: 1–50)
+- **Blacklist button in history** — 🚫 button directly on every history entry, no keyboard shortcut needed
+- **Round Robin mode** — player button that cycles through all artists one by one in a randomly shuffled order; reshuffles when all artists have played once
+- **Per-artist track lock** — tracks are never repeated for an artist until the entire discography has been played; auto-resets when exhausted
+
+### Changed
+- **Live filter** now checks track name in addition to album name — tracks like "Song - Live, at Wacken, 2015" are now correctly filtered (uses precise patterns like " live", "- live", "live at ", "live in " to avoid false positives on song titles containing "live")
+- **Artist cooldown after Round Robin** — when Round Robin is deactivated, the last 5 played artists are locked for 5 songs to prevent immediate repeats
+- **fillQueue in Round Robin** now uses the same shared artist queue and index as doShuffle — no more out-of-order artist picks in the pre-loaded queue
+
+---
+
 ## [1.2.0] — 2026-04-03 — Sync & Filter Release
 
 ### Added
@@ -54,6 +81,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] — 2026-04-22 — Album Blacklist
+
+### Added
+- **Album blacklist button** — new button in player secondary controls (💿, next to the track blacklist button) that adds all tracks of the currently playing album to the blacklist at once; shows a toast with the count of added tracks and skips to the next song automatically
+
+### Fixed
+- Album ID is now stored in `currentTrack` state — this was required for the album blacklist feature to work correctly
+
+---
+
+## [1.3.0] — 2026-04-22 — Filter & Shuffle Release
+
+### Added
+- **Acoustic filter** — per-list toggle to hide tracks with "acoustic", "unplugged", "stripped", "acoustique", "akustik" in track or album name
+- **Orchestral filter** — per-list toggle to hide tracks with "orchestral" in track or album name
+- **Artist repeat limit** — configurable per list: set how many tracks must play between repeats of the same artist (default: 3, range: 1–50)
+- **Blacklist button in history** — 🚫 button directly on every history entry, no keyboard shortcut needed
+- **Round Robin mode** — player button that cycles through all artists one by one in a randomly shuffled order; reshuffles when all artists have played once
+- **Per-artist track lock** — tracks are never repeated for an artist until the entire discography has been played; auto-resets when exhausted
+
+### Changed
+- **Live filter** now checks track name in addition to album name — tracks like "Song - Live, at Wacken, 2015" are now correctly filtered (uses precise patterns like " live", "- live", "live at ", "live in " to avoid false positives on song titles containing "live")
+- **Artist cooldown after Round Robin** — when Round Robin is deactivated, the last 5 played artists are locked for 5 songs to prevent immediate repeats
+- **fillQueue in Round Robin** now uses the same shared artist queue and index as doShuffle — no more out-of-order artist picks in the pre-loaded queue
+
+---
+
 ## [1.2.0] — 2026-04-03 — Sync & Filter Release
 
 ### Added
@@ -90,6 +144,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Each artist and album has equal chance of being picked (1 entry each in pool)
 - Artists with more albums naturally provide more variety when selected
 - Smart Shuffle still applies — artists not played recently get higher weight
+
+---
+
+## [1.3.1] — 2026-04-22 — Album Blacklist
+
+### Added
+- **Album blacklist button** — new button in player secondary controls (💿, next to the track blacklist button) that adds all tracks of the currently playing album to the blacklist at once; shows a toast with the count of added tracks and skips to the next song automatically
+
+### Fixed
+- Album ID is now stored in `currentTrack` state — this was required for the album blacklist feature to work correctly
+
+---
+
+## [1.3.0] — 2026-04-22 — Filter & Shuffle Release
+
+### Added
+- **Acoustic filter** — per-list toggle to hide tracks with "acoustic", "unplugged", "stripped", "acoustique", "akustik" in track or album name
+- **Orchestral filter** — per-list toggle to hide tracks with "orchestral" in track or album name
+- **Artist repeat limit** — configurable per list: set how many tracks must play between repeats of the same artist (default: 3, range: 1–50)
+- **Blacklist button in history** — 🚫 button directly on every history entry, no keyboard shortcut needed
+- **Round Robin mode** — player button that cycles through all artists one by one in a randomly shuffled order; reshuffles when all artists have played once
+- **Per-artist track lock** — tracks are never repeated for an artist until the entire discography has been played; auto-resets when exhausted
+
+### Changed
+- **Live filter** now checks track name in addition to album name — tracks like "Song - Live, at Wacken, 2015" are now correctly filtered (uses precise patterns like " live", "- live", "live at ", "live in " to avoid false positives on song titles containing "live")
+- **Artist cooldown after Round Robin** — when Round Robin is deactivated, the last 5 played artists are locked for 5 songs to prevent immediate repeats
+- **fillQueue in Round Robin** now uses the same shared artist queue and index as doShuffle — no more out-of-order artist picks in the pre-loaded queue
 
 ---
 
@@ -148,6 +229,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] — 2026-04-22 — Album Blacklist
+
+### Added
+- **Album blacklist button** — new button in player secondary controls (💿, next to the track blacklist button) that adds all tracks of the currently playing album to the blacklist at once; shows a toast with the count of added tracks and skips to the next song automatically
+
+### Fixed
+- Album ID is now stored in `currentTrack` state — this was required for the album blacklist feature to work correctly
+
+---
+
+## [1.3.0] — 2026-04-22 — Filter & Shuffle Release
+
+### Added
+- **Acoustic filter** — per-list toggle to hide tracks with "acoustic", "unplugged", "stripped", "acoustique", "akustik" in track or album name
+- **Orchestral filter** — per-list toggle to hide tracks with "orchestral" in track or album name
+- **Artist repeat limit** — configurable per list: set how many tracks must play between repeats of the same artist (default: 3, range: 1–50)
+- **Blacklist button in history** — 🚫 button directly on every history entry, no keyboard shortcut needed
+- **Round Robin mode** — player button that cycles through all artists one by one in a randomly shuffled order; reshuffles when all artists have played once
+- **Per-artist track lock** — tracks are never repeated for an artist until the entire discography has been played; auto-resets when exhausted
+
+### Changed
+- **Live filter** now checks track name in addition to album name — tracks like "Song - Live, at Wacken, 2015" are now correctly filtered (uses precise patterns like " live", "- live", "live at ", "live in " to avoid false positives on song titles containing "live")
+- **Artist cooldown after Round Robin** — when Round Robin is deactivated, the last 5 played artists are locked for 5 songs to prevent immediate repeats
+- **fillQueue in Round Robin** now uses the same shared artist queue and index as doShuffle — no more out-of-order artist picks in the pre-loaded queue
+
+---
+
 ## [1.2.0] — 2026-04-03 — Sync & Filter Release
 
 ### Added
@@ -179,6 +287,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Artist grid switched from 3 to 2 columns — larger images, more breathing room
+
+---
+
+## [1.3.1] — 2026-04-22 — Album Blacklist
+
+### Added
+- **Album blacklist button** — new button in player secondary controls (💿, next to the track blacklist button) that adds all tracks of the currently playing album to the blacklist at once; shows a toast with the count of added tracks and skips to the next song automatically
+
+### Fixed
+- Album ID is now stored in `currentTrack` state — this was required for the album blacklist feature to work correctly
+
+---
+
+## [1.3.0] — 2026-04-22 — Filter & Shuffle Release
+
+### Added
+- **Acoustic filter** — per-list toggle to hide tracks with "acoustic", "unplugged", "stripped", "acoustique", "akustik" in track or album name
+- **Orchestral filter** — per-list toggle to hide tracks with "orchestral" in track or album name
+- **Artist repeat limit** — configurable per list: set how many tracks must play between repeats of the same artist (default: 3, range: 1–50)
+- **Blacklist button in history** — 🚫 button directly on every history entry, no keyboard shortcut needed
+- **Round Robin mode** — player button that cycles through all artists one by one in a randomly shuffled order; reshuffles when all artists have played once
+- **Per-artist track lock** — tracks are never repeated for an artist until the entire discography has been played; auto-resets when exhausted
+
+### Changed
+- **Live filter** now checks track name in addition to album name — tracks like "Song - Live, at Wacken, 2015" are now correctly filtered (uses precise patterns like " live", "- live", "live at ", "live in " to avoid false positives on song titles containing "live")
+- **Artist cooldown after Round Robin** — when Round Robin is deactivated, the last 5 played artists are locked for 5 songs to prevent immediate repeats
+- **fillQueue in Round Robin** now uses the same shared artist queue and index as doShuffle — no more out-of-order artist picks in the pre-loaded queue
 
 ---
 
@@ -215,6 +350,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Artist cards no longer shrink with many artists — fixed size with scrollbar
 - Year filters were always active even when empty
+
+---
+
+## [1.3.1] — 2026-04-22 — Album Blacklist
+
+### Added
+- **Album blacklist button** — new button in player secondary controls (💿, next to the track blacklist button) that adds all tracks of the currently playing album to the blacklist at once; shows a toast with the count of added tracks and skips to the next song automatically
+
+### Fixed
+- Album ID is now stored in `currentTrack` state — this was required for the album blacklist feature to work correctly
+
+---
+
+## [1.3.0] — 2026-04-22 — Filter & Shuffle Release
+
+### Added
+- **Acoustic filter** — per-list toggle to hide tracks with "acoustic", "unplugged", "stripped", "acoustique", "akustik" in track or album name
+- **Orchestral filter** — per-list toggle to hide tracks with "orchestral" in track or album name
+- **Artist repeat limit** — configurable per list: set how many tracks must play between repeats of the same artist (default: 3, range: 1–50)
+- **Blacklist button in history** — 🚫 button directly on every history entry, no keyboard shortcut needed
+- **Round Robin mode** — player button that cycles through all artists one by one in a randomly shuffled order; reshuffles when all artists have played once
+- **Per-artist track lock** — tracks are never repeated for an artist until the entire discography has been played; auto-resets when exhausted
+
+### Changed
+- **Live filter** now checks track name in addition to album name — tracks like "Song - Live, at Wacken, 2015" are now correctly filtered (uses precise patterns like " live", "- live", "live at ", "live in " to avoid false positives on song titles containing "live")
+- **Artist cooldown after Round Robin** — when Round Robin is deactivated, the last 5 played artists are locked for 5 songs to prevent immediate repeats
+- **fillQueue in Round Robin** now uses the same shared artist queue and index as doShuffle — no more out-of-order artist picks in the pre-loaded queue
 
 ---
 

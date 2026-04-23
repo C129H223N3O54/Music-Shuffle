@@ -2,7 +2,7 @@
 
 > Shuffle durch deine liebsten Spotify-Artists und Genres — kein Algorithmus, nur deine Auswahl.
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Vanilla JS](https://img.shields.io/badge/Gebaut%20mit-Vanilla%20JS-yellow)
 ![Spotify API](https://img.shields.io/badge/Spotify-Web%20API%20%2B%20SDK-1DB954)
@@ -25,11 +25,13 @@
 - **Smart Shuffle** — Artists die lange nicht gespielt wurden kommen öfter dran
 - **Favoriten-Artists** — ⭐ Artists anpinnen für 3× höhere Wahrscheinlichkeit
 - **Queue** mit 2 vorgeladenen nächsten Songs
-- **Verlauf** — letzte 20 Tracks, anklickbar zum Erneut-Abspielen
+- **Verlauf** — letzte 20 Tracks, anklickbar zum Erneut-Abspielen oder direkt zur Blacklist hinzufügen
+- **Album-Blacklist** — ganzes Album des aktuellen Songs auf einmal sperren via Player-Button
 - **Crossfade** — sanftes Ausblenden vor Track-Ende
 - **Auto-Skip** — Tracks unter 60 Sekunden automatisch überspringen
 - **Wiederholen-Modus**
 - **Mediatasten-Unterstützung** — Tastatur Play/Pause/Weiter/Zurück funktionieren nativ
+- **Round-Robin Modus** — reihum je ein Song pro Artist, zufällig gemischt
 
 ### 📋 Listen-Verwaltung
 - Mehrere benannte Listen ("Metal Abend", "Gym Rotation", etc.)
@@ -41,8 +43,11 @@
 - **Geräteübergreifende Synchronisation** über optionalen selbst gehosteten Sync-Server
 
 ### 🔍 Filter (pro Liste)
-- 🚫 Keine Live-Alben
+- 🚫 Keine Live-Alben — prüft Album- und Tracknamen
 - 🎼 Keine Instrumentals — filtert Tracks mit "instrumental", "karaoke", "backing track" usw. im Namen
+- 🎸 Keine Akustik-Versionen — filtert Tracks mit "acoustic", "unplugged", "stripped" usw. im Track- oder Albumnamen
+- 🎻 Keine Orchestral-Versionen — filtert Tracks mit "orchestral" im Track- oder Albumnamen
+- 🔁 Artist-Wiederholung — konfigurierbare Mindestanzahl Tracks zwischen Wiederholungen desselben Artists (Standard: 3)
 - 📅 Jahres-Range (von / bis)
 
 ### 🔎 Discovery
@@ -56,6 +61,7 @@
 - **Shuffle-Log** — warum wurde welcher Track gewählt?
 - **Artist-Stats** — pro Artist: Plays und Top Songs (Artist-Card anklicken)
 - **Geräteübergreifende Stats** — Wiedergabe-Statistiken werden über den Sync-Server geteilt
+- **Track-Sperre pro Artist** — jeder Track wird erst wiederholt wenn die gesamte Diskografie gespielt wurde
 
 ### 🖥️ UI / UX
 - Dark Theme (Spotify-inspiriert)

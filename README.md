@@ -2,7 +2,7 @@
 
 > Shuffle through your favorite Spotify artists and genres — no algorithm, just your picks.
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Vanilla JS](https://img.shields.io/badge/Built%20with-Vanilla%20JS-yellow)
 ![Spotify API](https://img.shields.io/badge/Spotify-Web%20API%20%2B%20SDK-1DB954)
@@ -25,11 +25,13 @@
 - **Smart Shuffle** — artists not played recently get higher probability
 - **Favorite artists** — ⭐ pin artists for 3× higher play chance
 - **Queue** with 2 pre-loaded next songs
-- **Play history** — last 20 tracks, clickable to replay
+- **Play history** — last 20 tracks, clickable to replay or blacklist directly
+- **Album blacklist** — blacklist all tracks of the current album at once via player button
 - **Crossfade** — smooth volume fade before track end
 - **Auto-Skip** — skip tracks shorter than 60 seconds
 - **Repeat mode**
 - **Media key support** — keyboard play/pause/next/prev keys work natively
+- **Round Robin mode** — cycle through all artists one by one, randomly shuffled
 
 ### 📋 List Management
 - Multiple named lists ("Metal Evening", "Gym Rotation", etc.)
@@ -41,8 +43,11 @@
 - **Cross-device sync** via optional self-hosted sync server
 
 ### 🔍 Filters (per list)
-- 🚫 No live albums
+- 🚫 No live albums — checks both album and track name
 - 🎼 No instrumentals — filters tracks with "instrumental", "karaoke", "backing track" etc. in the name
+- 🎸 No acoustic versions — filters tracks with "acoustic", "unplugged", "stripped" etc. in track or album name
+- 🎻 No orchestral versions — filters tracks with "orchestral" in track or album name
+- 🔁 Artist repeat limit — configurable minimum tracks between repeats of the same artist (default: 3)
 - 📅 Year range
 
 ### 🔎 Discovery
@@ -56,6 +61,7 @@
 - **Shuffle log** — why was each track chosen?
 - **Artist stats** — per-artist play count and top songs (click any artist card)
 - **Cross-device stats sync** — play statistics shared across all devices via sync server
+- **Per-artist track lock** — each track only repeats after the full discography has been played
 
 ### 🖥️ UI / UX
 - Dark theme (Spotify-inspired)
@@ -289,6 +295,7 @@ Extended Quota (required to unlock restricted APIs) now requires 250,000 monthly
 - **No analytics, no tracking, no ads**
 - **OAuth 2.0 PKCE** — most secure flow for public clients, no client secret needed
 - `config.js` is in `.gitignore` — your Client ID never gets committed
+- Blacklisted tracks and albums stored locally in `localStorage`
 
 ---
 

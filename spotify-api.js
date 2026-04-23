@@ -224,7 +224,16 @@ const SpotifyAPI = (() => {
   function _applyFilters(tracks, filters, blacklist) {
     let r = tracks.filter(t => !blacklist.has(t.id));
     if (filters.noLive) {
-      r = r.filter(t => { const n=(t.album?.name||'').toLowerCase(); return !n.includes('live')&&!n.includes('concert')&&!n.includes('unplugged'); });
+      const LIVE_ALBUM = ['live', 'concert', 'unplugged'];
+      // Für Tracknamen nur eindeutige Muster — "live" allein trifft zu viele Songnamen
+      const LIVE_TRACK = [' live', '(live', '- live', 'live at ', 'live in ', 'unplugged', 'concert'];
+      r = r.filter(t => {
+        const track = (t.name||'').toLowerCase();
+        const album = (t.album?.name||'').toLowerCase();
+        if (LIVE_ALBUM.some(k => album.includes(k))) return false;
+        if (LIVE_TRACK.some(k => track.includes(k))) return false;
+        return true;
+      });
     }
     if (filters.noInstrumental) {
       r = r.filter(t => {
@@ -232,6 +241,21 @@ const SpotifyAPI = (() => {
         return !n.includes('instrumental') && !n.includes('karaoke') &&
                !n.includes('backing track') && !n.includes('playback') &&
                !n.includes('(inst') && !n.includes('inst.');
+      });
+    }
+    if (filters.noOrchestral) {
+      r = r.filter(t => {
+        const track = (t.name||'').toLowerCase();
+        const album = (t.album?.name||'').toLowerCase();
+        return !track.includes('orchestral') && !album.includes('orchestral');
+      });
+    }
+    if (filters.noAcoustic) {
+      r = r.filter(t => {
+        const track = (t.name||'').toLowerCase();
+        const album = (t.album?.name||'').toLowerCase();
+        const ACOUSTIC = ['acoustic', 'acoustique', 'akustik', 'unplugged', 'stripped'];
+        return !ACOUSTIC.some(k => track.includes(k) || album.includes(k));
       });
     }
     if (filters.yearFrom || filters.yearTo) {
@@ -273,7 +297,7 @@ const SpotifyAPI = (() => {
     await _fetch(`/me/player/repeat?state=${state}${deviceId?`&device_id=${deviceId}`:''}`, { method:'PUT' });
   }
 
-  async function getRandomTrack(artistId, filters={}, blacklist=new Set(), history=new Set(), onlyNew=false) {
+  async function getRandomTrack(artistId, filters={}, blacklist=new Set(), history=new Set(), onlyNew=false, artistTrackHistory={}, artistRepeatLimit=3) {
     let albums = await _getCachedAlbums(artistId);
     if (!albums.length) return null;
     if (filters.noLive) albums = albums.filter(a=>{ const n=(a.name||'').toLowerCase(); return !n.includes('live')&&!n.includes('concert')&&!n.includes('unplugged')&&a.album_type!=='live'; });
@@ -281,13 +305,31 @@ const SpotifyAPI = (() => {
       albums = albums.filter(a=>{ const y=parseInt((a.release_date||'0').slice(0,4),10); if(filters.yearFrom&&y<filters.yearFrom)return false; if(filters.yearTo&&y>filters.yearTo)return false; return true; });
     }
     if (!albums.length) return null;
+    // Alle gespielten Tracks dieses Artists sperren — erst resetten wenn Diskografie erschöpft
+    const playedForArtist = new Set(artistTrackHistory[artistId] || []);
     const candidates = [...albums].sort(()=>Math.random()-0.5).slice(0,5);
+
+    // Erst mit Sperre versuchen
     for (const album of candidates) {
       const data = await _fetch(`/albums/${album.id}/tracks?limit=50&market=from_token`).catch(()=>null);
       if (!data?.items?.length) continue;
       let tracks = _applyFilters(_enrichTracks(data.items, album), filters, blacklist);
       if (onlyNew) { const f=tracks.filter(t=>!history.has(t.id)); if(f.length) tracks=f; }
+      if (playedForArtist.size) { const f=tracks.filter(t=>!playedForArtist.has(t.id)); if(f.length) tracks=f; }
       if (tracks.length) return tracks[Math.floor(Math.random()*tracks.length)];
+    }
+
+    // Alle Tracks gespielt — History für diesen Artist resetten und nochmal versuchen
+    if (playedForArtist.size && artistTrackHistory[artistId]) {
+      console.log(`[Shuffle] Diskografie von Artist ${artistId} erschöpft — History reset`);
+      artistTrackHistory[artistId] = [];
+      for (const album of candidates) {
+        const data = await _fetch(`/albums/${album.id}/tracks?limit=50&market=from_token`).catch(()=>null);
+        if (!data?.items?.length) continue;
+        let tracks = _applyFilters(_enrichTracks(data.items, album), filters, blacklist);
+        if (onlyNew) { const f=tracks.filter(t=>!history.has(t.id)); if(f.length) tracks=f; }
+        if (tracks.length) return tracks[Math.floor(Math.random()*tracks.length)];
+      }
     }
     return null;
   }
