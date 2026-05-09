@@ -2,7 +2,7 @@
 
 > Shuffle durch deine liebsten Spotify-Artists und Genres — kein Algorithmus, nur deine Auswahl.
 
-[![Version](https://img.shields.io/badge/version-1.3.3-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Vanilla JS](https://img.shields.io/badge/Gebaut%20mit-Vanilla%20JS-yellow)
 ![Spotify API](https://img.shields.io/badge/Spotify-Web%20API%20%2B%20SDK-1DB954)
@@ -51,7 +51,6 @@
 - 📅 Jahres-Range (von / bis)
 
 ### 🔎 Discovery
-- **Ähnliche Artists** — verwandte Artists finden und hinzufügen
 - **"Nur neue Songs"** — bereits gehörte Tracks überspringen
 
 ### 📊 Stats & Tracking
@@ -61,7 +60,7 @@
 - **Shuffle-Log** — warum wurde welcher Track gewählt?
 - **Artist-Stats** — pro Artist: Plays und Top Songs (Artist-Card anklicken)
 - **Geräteübergreifende Stats** — Wiedergabe-Statistiken werden über den Sync-Server geteilt
-- **Track-Sperre pro Artist** — jeder Track wird erst wiederholt wenn die gesamte Diskografie gespielt wurde
+- **Track-Sperre pro Artist** — jeder Track wird erst wiederholt wenn die gesamte Diskografie gespielt wurde (pro Liste ein-/ausschaltbar)
 
 ### 🖥️ UI / UX
 - Dark Theme — Sideforge Design System (Ember-Orange / Anvil Warmgrau)
@@ -257,6 +256,8 @@ Desktop (PWA)  ←→  Sync-Server  ←→  Mobil (PWA)
 | Artist-Listen | `/api/lists` | Immer synchronisiert wenn `syncUrl` gesetzt |
 | Wiedergabe-Statistiken | `/api/stats` | Synchronisiert wenn `syncUrl` gesetzt; deaktivierbar mit `syncStats: false` |
 | Blacklist | `/api/blacklist` | Gesperrte Tracks geräteübergreifend synchronisiert, beim Laden gemergt |
+| Track-History | `/api/track-history` | Gespielte Tracks pro Artist geräteübergreifend, beim Laden gemergt |
+| Track-Cache | `/api/tracks` | Album-Tracks serverseitig gecacht, 24h TTL |
 | Album-Cache | `/api/cache` | Geteilter 24h-Cache — verhindert Spotify API Calls beim Start |
 
 ### Health Check

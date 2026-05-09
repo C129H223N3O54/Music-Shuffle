@@ -22,6 +22,7 @@ const SpotifyAPI = (() => {
   let _accessToken = null, _tokenExpiry = 0, _refreshToken = null;
   let _clientId = null, _redirectUri = null, _lastRequest = 0;
   const _albumCache = new Map();
+  const _trackCache = new Map(); // albumId → { tracks: [...], ts }
 
   // ── PKCE ──────────────────────────────────────────────
   function _randomString(len = 64) {
@@ -193,6 +194,54 @@ const SpotifyAPI = (() => {
     } catch { /* fire and forget */ }
   }
 
+  // ── TRACK CACHE ───────────────────────────────────────
+  async function _getCachedTracks(albumId, albumData) {
+    const cached = _trackCache.get(albumId);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.tracks;
+    const data = await _fetch(`/albums/${albumId}/tracks?limit=50&market=from_token`).catch(()=>null);
+    if (!data?.items?.length) return [];
+    const tracks = _enrichTracks(data.items, albumData);
+    const entry = { tracks, ts: Date.now() };
+    _trackCache.set(albumId, entry);
+    _pushTrackCacheToServer(albumId, entry);
+    return tracks;
+  }
+
+  async function _pushTrackCacheToServer(albumId, entry) {
+    if (!_serverCacheUrl) return;
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 3000);
+      await fetch(`${_serverCacheUrl}/api/tracks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId, tracks: entry.tracks, ts: entry.ts }),
+        signal: controller.signal,
+      });
+    } catch { /* fire and forget */ }
+  }
+
+  async function loadServerTrackCache() {
+    if (!_serverCacheUrl) return false;
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${_serverCacheUrl}/api/tracks`, { signal: controller.signal });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!data?.cache) return false;
+      let count = 0;
+      for (const [albumId, entry] of Object.entries(data.cache)) {
+        if (entry.ts && Date.now() - entry.ts < CACHE_TTL) {
+          _trackCache.set(albumId, entry);
+          count++;
+        }
+      }
+      console.log(`[Cache] Loaded ${count} album track lists from server`);
+      return count > 0;
+    } catch { return false; }
+  }
+
   async function _getCachedAlbums(artistId) {
     // 1. In-Memory Cache prüfen
     const cached = _albumCache.get(artistId);
@@ -271,7 +320,6 @@ const SpotifyAPI = (() => {
 
   // ── PUBLIC ────────────────────────────────────────────
   async function getMe()               { return _fetch('/me'); }
-  async function getRelatedArtists(id) { return (await _fetch(`/artists/${id}/related-artists`))?.artists || []; }
   async function getArtistAlbums(id, limit=10, offset=0) {
     return (await _fetch(`/artists/${id}/albums?include_groups=album,single&limit=${limit}&offset=${offset}`))?.items || [];
   }
@@ -311,9 +359,9 @@ const SpotifyAPI = (() => {
 
     // Erst mit Sperre versuchen
     for (const album of candidates) {
-      const data = await _fetch(`/albums/${album.id}/tracks?limit=50&market=from_token`).catch(()=>null);
-      if (!data?.items?.length) continue;
-      let tracks = _applyFilters(_enrichTracks(data.items, album), filters, blacklist);
+      const raw = await _getCachedTracks(album.id, album);
+      if (!raw.length) continue;
+      let tracks = _applyFilters(raw, filters, blacklist);
       if (onlyNew) { const f=tracks.filter(t=>!history.has(t.id)); if(f.length) tracks=f; }
       if (playedForArtist.size) { const f=tracks.filter(t=>!playedForArtist.has(t.id)); if(f.length) tracks=f; }
       if (tracks.length) return tracks[Math.floor(Math.random()*tracks.length)];
@@ -324,9 +372,9 @@ const SpotifyAPI = (() => {
       console.log(`[Shuffle] Diskografie von Artist ${artistId} erschöpft — History reset`);
       artistTrackHistory[artistId] = [];
       for (const album of candidates) {
-        const data = await _fetch(`/albums/${album.id}/tracks?limit=50&market=from_token`).catch(()=>null);
-        if (!data?.items?.length) continue;
-        let tracks = _applyFilters(_enrichTracks(data.items, album), filters, blacklist);
+        const raw = await _getCachedTracks(album.id, album);
+        if (!raw.length) continue;
+        let tracks = _applyFilters(raw, filters, blacklist);
         if (onlyNew) { const f=tracks.filter(t=>!history.has(t.id)); if(f.length) tracks=f; }
         if (tracks.length) return tracks[Math.floor(Math.random()*tracks.length)];
       }
@@ -388,11 +436,11 @@ const SpotifyAPI = (() => {
 
   return {
     init, startLogin, handleCallback, logout, isLoggedIn, getToken,
-    getMe, searchArtists, getRelatedArtists, getArtistAlbums,
+    getMe, searchArtists, getArtistAlbums,
     getDevices, playTrack, setVolume, seek, transferPlayback, setRepeat,
     getRandomTrack, getArtistAlbumsFull, getRandomTrackFromAlbum,
     getRandomTrackByGenre, getAvailableGenres,
-    setServerCacheUrl, loadServerCache,
+    setServerCacheUrl, loadServerCache, loadServerTrackCache,
   };
 
 })();

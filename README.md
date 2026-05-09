@@ -2,7 +2,7 @@
 
 > Shuffle through your favorite Spotify artists and genres — no algorithm, just your picks.
 
-[![Version](https://img.shields.io/badge/version-1.3.3-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Vanilla JS](https://img.shields.io/badge/Built%20with-Vanilla%20JS-yellow)
 ![Spotify API](https://img.shields.io/badge/Spotify-Web%20API%20%2B%20SDK-1DB954)
@@ -51,7 +51,6 @@
 - 📅 Year range
 
 ### 🔎 Discovery
-- **Similar Artists** — find and add related artists
 - **"Only new songs"** — skip tracks already in history
 
 ### 📊 Stats & Tracking
@@ -61,7 +60,7 @@
 - **Shuffle log** — why was each track chosen?
 - **Artist stats** — per-artist play count and top songs (click any artist card)
 - **Cross-device stats sync** — play statistics shared across all devices via sync server
-- **Per-artist track lock** — each track only repeats after the full discography has been played
+- **Per-artist track lock** — each track only repeats after the full discography has been played (toggle per list)
 
 ### 🖥️ UI / UX
 - Dark theme — Sideforge Design System (Ember orange / Anvil warm grays)
@@ -258,6 +257,8 @@ Desktop (PWA)  ←→  Sync Server  ←→  Mobile (PWA)
 | Artist lists | `/api/lists` | Always synced when `syncUrl` is set |
 | Play statistics | `/api/stats` | Synced when `syncUrl` is set; disable with `syncStats: false` |
 | Blacklist | `/api/blacklist` | Blacklisted tracks synced across devices, merged on load |
+| Track history | `/api/track-history` | Per-artist played track history, merged on load |
+| Track cache | `/api/tracks` | Album track lists cached server-side, 24h TTL |
 | Album cache | `/api/cache` | Shared 24h cache — eliminates cold-start Spotify API calls |
 
 ### Health check

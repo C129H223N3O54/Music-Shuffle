@@ -62,6 +62,7 @@ const I18N = (() => {
       filter_no_acoustic: '🎸 Keine Akustik-Versionen',
       filter_no_orchestral: '🎻 Keine Orchestral-Versionen',
       filter_artist_repeat_limit: '🔁 Artist-Wiederholung nach',
+      filter_no_repeat: '🔒 Keine Track-Wiederholungen',
       filter_artist_repeat_limit_suffix: 'Tracks',
       filter_year_from: '📅 Ab Jahr',
       filter_year_from_placeholder: '1990',
@@ -122,12 +123,6 @@ const I18N = (() => {
       artist_stats_close: 'Schließen',
 
       // Discovery
-      discovery_title: '🎯 Ähnliche Artists entdecken',
-      discovery_loading: 'Lade…',
-      discovery_none: 'Keine Ergebnisse',
-      discovery_add: '+ Hinzufügen',
-      discovery_added: '✓ In Liste',
-      discovery_close: 'Schließen',
 
       // Genres
       genres_label: '🎸 Genres',
@@ -247,6 +242,7 @@ const I18N = (() => {
       filter_no_acoustic: '🎸 No acoustic versions',
       filter_no_orchestral: '🎻 No orchestral versions',
       filter_artist_repeat_limit: '🔁 Repeat artist after',
+      filter_no_repeat: '🔒 No track repeats',
       filter_artist_repeat_limit_suffix: 'tracks',
       filter_year_from: '📅 From year',
       filter_year_from_placeholder: '1990',
@@ -307,12 +303,6 @@ const I18N = (() => {
       artist_stats_close: 'Close',
 
       // Discovery
-      discovery_title: '🎯 Discover Similar Artists',
-      discovery_loading: 'Loading…',
-      discovery_none: 'No results',
-      discovery_add: '+ Add',
-      discovery_added: '✓ In list',
-      discovery_close: 'Close',
 
       // Genres
       genres_label: '🎸 Genres',

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] — 2026-05-09 — Cache & History Release
+
+### Added
+- **Track status tab** in album browser — click an artist card and switch to the "📊 Track Status" tab to see all tracks with ✅ played or 🔒 locked status, plus a progress counter (e.g. "12 / 34 played")
+- **Server-side track cache** — album track lists are now cached on the sync server (`/api/tracks`, `tracks.json`); after the first playthrough all track requests are served from cache — no more cold-start 429 errors
+- **Track history sync** — the per-artist played-track history is synced across devices via the sync server (`/api/track-history`, `track-history.json`); merged on load so no plays are lost
+- **Track history persistence** — `artistTrackHistory` is now saved to `localStorage` and survives browser restarts and page reloads
+- **"No track repeats" filter** (per list) — toggle to enable/disable the artist track lock; when active, each track is only repeated after the full discography has been played; default: on
+- **PWA icons updated** — all icon sizes (96, 128, 192, 512px) regenerated with the Sideforge SF monogram logo
+
+### Changed
+- **Discovery (Similar Artists) removed** — Spotify has permanently restricted the `/artists/{id}/related-artists` endpoint for Development Mode apps; the button, modal and all related code have been removed
+- **Live filter** now also checks track names for unambiguous patterns (` live`, `(live`, `- live`, `live at `, `live in `) to catch tracks like "Song Title - Live, at Wacken 2015" without false positives on song titles containing the word "live"
+- **`manifest.json` theme color** updated to Ember Orange `#E8600A` (was Spotify teal)
+- **DEPLOYMENT.md** — completely rewritten for current file structure including `sideforge-tokens.css`
+- **CONTRIBUTING.md** — completely rewritten; documents Sideforge Design System, all sync server endpoints, and known Spotify API limitations
+- **SYNC-SERVER.md** — completely rewritten; documents all 6 data files and endpoints including new `/api/tracks` and `/api/track-history`
+
+### Sync Server
+- New endpoint `GET/POST /api/tracks` — album track cache, stored in `tracks.json`
+- New endpoint `GET/POST /api/track-history` — per-artist played track history, stored in `track-history.json`
+
+---
+
 ## [1.3.3] — 2026-04-25 — Sideforge & Blacklist Sync
 
 ### Added
@@ -108,6 +132,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] — 2026-05-09 — Cache & History Release
+
+### Added
+- **Track status tab** in album browser — click an artist card and switch to the "📊 Track Status" tab to see all tracks with ✅ played or 🔒 locked status, plus a progress counter (e.g. "12 / 34 played")
+- **Server-side track cache** — album track lists are now cached on the sync server (`/api/tracks`, `tracks.json`); after the first playthrough all track requests are served from cache — no more cold-start 429 errors
+- **Track history sync** — the per-artist played-track history is synced across devices via the sync server (`/api/track-history`, `track-history.json`); merged on load so no plays are lost
+- **Track history persistence** — `artistTrackHistory` is now saved to `localStorage` and survives browser restarts and page reloads
+- **"No track repeats" filter** (per list) — toggle to enable/disable the artist track lock; when active, each track is only repeated after the full discography has been played; default: on
+- **PWA icons updated** — all icon sizes (96, 128, 192, 512px) regenerated with the Sideforge SF monogram logo
+
+### Changed
+- **Discovery (Similar Artists) removed** — Spotify has permanently restricted the `/artists/{id}/related-artists` endpoint for Development Mode apps; the button, modal and all related code have been removed
+- **Live filter** now also checks track names for unambiguous patterns (` live`, `(live`, `- live`, `live at `, `live in `) to catch tracks like "Song Title - Live, at Wacken 2015" without false positives on song titles containing the word "live"
+- **`manifest.json` theme color** updated to Ember Orange `#E8600A` (was Spotify teal)
+- **DEPLOYMENT.md** — completely rewritten for current file structure including `sideforge-tokens.css`
+- **CONTRIBUTING.md** — completely rewritten; documents Sideforge Design System, all sync server endpoints, and known Spotify API limitations
+- **SYNC-SERVER.md** — completely rewritten; documents all 6 data files and endpoints including new `/api/tracks` and `/api/track-history`
+
+### Sync Server
+- New endpoint `GET/POST /api/tracks` — album track cache, stored in `tracks.json`
+- New endpoint `GET/POST /api/track-history` — per-artist played track history, stored in `track-history.json`
+
+---
+
 ## [1.3.3] — 2026-04-25 — Sideforge & Blacklist Sync
 
 ### Added
@@ -198,6 +246,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Each artist and album has equal chance of being picked (1 entry each in pool)
 - Artists with more albums naturally provide more variety when selected
 - Smart Shuffle still applies — artists not played recently get higher weight
+
+---
+
+## [1.4.0] — 2026-05-09 — Cache & History Release
+
+### Added
+- **Track status tab** in album browser — click an artist card and switch to the "📊 Track Status" tab to see all tracks with ✅ played or 🔒 locked status, plus a progress counter (e.g. "12 / 34 played")
+- **Server-side track cache** — album track lists are now cached on the sync server (`/api/tracks`, `tracks.json`); after the first playthrough all track requests are served from cache — no more cold-start 429 errors
+- **Track history sync** — the per-artist played-track history is synced across devices via the sync server (`/api/track-history`, `track-history.json`); merged on load so no plays are lost
+- **Track history persistence** — `artistTrackHistory` is now saved to `localStorage` and survives browser restarts and page reloads
+- **"No track repeats" filter** (per list) — toggle to enable/disable the artist track lock; when active, each track is only repeated after the full discography has been played; default: on
+- **PWA icons updated** — all icon sizes (96, 128, 192, 512px) regenerated with the Sideforge SF monogram logo
+
+### Changed
+- **Discovery (Similar Artists) removed** — Spotify has permanently restricted the `/artists/{id}/related-artists` endpoint for Development Mode apps; the button, modal and all related code have been removed
+- **Live filter** now also checks track names for unambiguous patterns (` live`, `(live`, `- live`, `live at `, `live in `) to catch tracks like "Song Title - Live, at Wacken 2015" without false positives on song titles containing the word "live"
+- **`manifest.json` theme color** updated to Ember Orange `#E8600A` (was Spotify teal)
+- **DEPLOYMENT.md** — completely rewritten for current file structure including `sideforge-tokens.css`
+- **CONTRIBUTING.md** — completely rewritten; documents Sideforge Design System, all sync server endpoints, and known Spotify API limitations
+- **SYNC-SERVER.md** — completely rewritten; documents all 6 data files and endpoints including new `/api/tracks` and `/api/track-history`
+
+### Sync Server
+- New endpoint `GET/POST /api/tracks` — album track cache, stored in `tracks.json`
+- New endpoint `GET/POST /api/track-history` — per-artist played track history, stored in `track-history.json`
 
 ---
 
@@ -310,6 +382,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] — 2026-05-09 — Cache & History Release
+
+### Added
+- **Track status tab** in album browser — click an artist card and switch to the "📊 Track Status" tab to see all tracks with ✅ played or 🔒 locked status, plus a progress counter (e.g. "12 / 34 played")
+- **Server-side track cache** — album track lists are now cached on the sync server (`/api/tracks`, `tracks.json`); after the first playthrough all track requests are served from cache — no more cold-start 429 errors
+- **Track history sync** — the per-artist played-track history is synced across devices via the sync server (`/api/track-history`, `track-history.json`); merged on load so no plays are lost
+- **Track history persistence** — `artistTrackHistory` is now saved to `localStorage` and survives browser restarts and page reloads
+- **"No track repeats" filter** (per list) — toggle to enable/disable the artist track lock; when active, each track is only repeated after the full discography has been played; default: on
+- **PWA icons updated** — all icon sizes (96, 128, 192, 512px) regenerated with the Sideforge SF monogram logo
+
+### Changed
+- **Discovery (Similar Artists) removed** — Spotify has permanently restricted the `/artists/{id}/related-artists` endpoint for Development Mode apps; the button, modal and all related code have been removed
+- **Live filter** now also checks track names for unambiguous patterns (` live`, `(live`, `- live`, `live at `, `live in `) to catch tracks like "Song Title - Live, at Wacken 2015" without false positives on song titles containing the word "live"
+- **`manifest.json` theme color** updated to Ember Orange `#E8600A` (was Spotify teal)
+- **DEPLOYMENT.md** — completely rewritten for current file structure including `sideforge-tokens.css`
+- **CONTRIBUTING.md** — completely rewritten; documents Sideforge Design System, all sync server endpoints, and known Spotify API limitations
+- **SYNC-SERVER.md** — completely rewritten; documents all 6 data files and endpoints including new `/api/tracks` and `/api/track-history`
+
+### Sync Server
+- New endpoint `GET/POST /api/tracks` — album track cache, stored in `tracks.json`
+- New endpoint `GET/POST /api/track-history` — per-artist played track history, stored in `track-history.json`
+
+---
+
 ## [1.3.3] — 2026-04-25 — Sideforge & Blacklist Sync
 
 ### Added
@@ -395,6 +491,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Artist grid switched from 3 to 2 columns — larger images, more breathing room
+
+---
+
+## [1.4.0] — 2026-05-09 — Cache & History Release
+
+### Added
+- **Track status tab** in album browser — click an artist card and switch to the "📊 Track Status" tab to see all tracks with ✅ played or 🔒 locked status, plus a progress counter (e.g. "12 / 34 played")
+- **Server-side track cache** — album track lists are now cached on the sync server (`/api/tracks`, `tracks.json`); after the first playthrough all track requests are served from cache — no more cold-start 429 errors
+- **Track history sync** — the per-artist played-track history is synced across devices via the sync server (`/api/track-history`, `track-history.json`); merged on load so no plays are lost
+- **Track history persistence** — `artistTrackHistory` is now saved to `localStorage` and survives browser restarts and page reloads
+- **"No track repeats" filter** (per list) — toggle to enable/disable the artist track lock; when active, each track is only repeated after the full discography has been played; default: on
+- **PWA icons updated** — all icon sizes (96, 128, 192, 512px) regenerated with the Sideforge SF monogram logo
+
+### Changed
+- **Discovery (Similar Artists) removed** — Spotify has permanently restricted the `/artists/{id}/related-artists` endpoint for Development Mode apps; the button, modal and all related code have been removed
+- **Live filter** now also checks track names for unambiguous patterns (` live`, `(live`, `- live`, `live at `, `live in `) to catch tracks like "Song Title - Live, at Wacken 2015" without false positives on song titles containing the word "live"
+- **`manifest.json` theme color** updated to Ember Orange `#E8600A` (was Spotify teal)
+- **DEPLOYMENT.md** — completely rewritten for current file structure including `sideforge-tokens.css`
+- **CONTRIBUTING.md** — completely rewritten; documents Sideforge Design System, all sync server endpoints, and known Spotify API limitations
+- **SYNC-SERVER.md** — completely rewritten; documents all 6 data files and endpoints including new `/api/tracks` and `/api/track-history`
+
+### Sync Server
+- New endpoint `GET/POST /api/tracks` — album track cache, stored in `tracks.json`
+- New endpoint `GET/POST /api/track-history` — per-artist played track history, stored in `track-history.json`
 
 ---
 
@@ -485,6 +605,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Artist cards no longer shrink with many artists — fixed size with scrollbar
 - Year filters were always active even when empty
+
+---
+
+## [1.4.0] — 2026-05-09 — Cache & History Release
+
+### Added
+- **Track status tab** in album browser — click an artist card and switch to the "📊 Track Status" tab to see all tracks with ✅ played or 🔒 locked status, plus a progress counter (e.g. "12 / 34 played")
+- **Server-side track cache** — album track lists are now cached on the sync server (`/api/tracks`, `tracks.json`); after the first playthrough all track requests are served from cache — no more cold-start 429 errors
+- **Track history sync** — the per-artist played-track history is synced across devices via the sync server (`/api/track-history`, `track-history.json`); merged on load so no plays are lost
+- **Track history persistence** — `artistTrackHistory` is now saved to `localStorage` and survives browser restarts and page reloads
+- **"No track repeats" filter** (per list) — toggle to enable/disable the artist track lock; when active, each track is only repeated after the full discography has been played; default: on
+- **PWA icons updated** — all icon sizes (96, 128, 192, 512px) regenerated with the Sideforge SF monogram logo
+
+### Changed
+- **Discovery (Similar Artists) removed** — Spotify has permanently restricted the `/artists/{id}/related-artists` endpoint for Development Mode apps; the button, modal and all related code have been removed
+- **Live filter** now also checks track names for unambiguous patterns (` live`, `(live`, `- live`, `live at `, `live in `) to catch tracks like "Song Title - Live, at Wacken 2015" without false positives on song titles containing the word "live"
+- **`manifest.json` theme color** updated to Ember Orange `#E8600A` (was Spotify teal)
+- **DEPLOYMENT.md** — completely rewritten for current file structure including `sideforge-tokens.css`
+- **CONTRIBUTING.md** — completely rewritten; documents Sideforge Design System, all sync server endpoints, and known Spotify API limitations
+- **SYNC-SERVER.md** — completely rewritten; documents all 6 data files and endpoints including new `/api/tracks` and `/api/track-history`
+
+### Sync Server
+- New endpoint `GET/POST /api/tracks` — album track cache, stored in `tracks.json`
+- New endpoint `GET/POST /api/track-history` — per-artist played track history, stored in `track-history.json`
 
 ---
 

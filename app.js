@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════
-   MUSIC SHUFFLE — app.js  v1.3.3
+   MUSIC SHUFFLE — app.js  v1.4.0
    ═══════════════════════════════════════════════════════ */
 'use strict';
 
 // ── VERSION ───────────────────────────────────────────────────────────────────
-const APP_VERSION = '1.3.3';
+const APP_VERSION = '1.4.0';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const State = {
@@ -48,12 +48,14 @@ const LS = {
   _syncTimer: null,
   _statsSyncTimer: null,
   _blacklistSyncTimer: null,
+  _trackHistorySyncTimer: null,
   save() {
-    localStorage.setItem('as_lists',     JSON.stringify(State.lists));
-    localStorage.setItem('as_blacklist', JSON.stringify(State.blacklist));
-    localStorage.setItem('as_stats',     JSON.stringify(State.stats));
-    localStorage.setItem('as_volume',    State.volume);
-    localStorage.setItem('as_active_list', State.activeListId || '');
+    localStorage.setItem('as_lists',         JSON.stringify(State.lists));
+    localStorage.setItem('as_blacklist',     JSON.stringify(State.blacklist));
+    localStorage.setItem('as_stats',         JSON.stringify(State.stats));
+    localStorage.setItem('as_volume',        State.volume);
+    localStorage.setItem('as_active_list',   State.activeListId || '');
+    localStorage.setItem('as_track_history', JSON.stringify(State.artistTrackHistory));
     clearTimeout(this._syncTimer);
     this._syncTimer = setTimeout(() => Sync.save(), 10000);
   },
@@ -63,15 +65,22 @@ const LS = {
     this._blacklistSyncTimer = setTimeout(() => Sync.saveBlacklist(), 10000);
   },
   saveStatsDebounced() {
-    localStorage.setItem('as_stats', JSON.stringify(State.stats));
+    localStorage.setItem('as_stats',         JSON.stringify(State.stats));
+    localStorage.setItem('as_track_history', JSON.stringify(State.artistTrackHistory));
     clearTimeout(this._statsSyncTimer);
     this._statsSyncTimer = setTimeout(() => Sync.saveStats(), 30000);
+  },
+  saveTrackHistoryDebounced() {
+    localStorage.setItem('as_track_history', JSON.stringify(State.artistTrackHistory));
+    clearTimeout(this._trackHistorySyncTimer);
+    this._trackHistorySyncTimer = setTimeout(() => Sync.saveTrackHistory(), 30000);
   },
   load() {
     try { State.lists     = JSON.parse(localStorage.getItem('as_lists')     || '[]'); } catch { State.lists = []; }
     try { State.blacklist = JSON.parse(localStorage.getItem('as_blacklist') || '[]'); } catch { State.blacklist = []; }
     try { State.stats = { plays:[], shuffles:0, ...JSON.parse(localStorage.getItem('as_stats') || '{}') }; } catch {}
     State.volume          = parseInt(localStorage.getItem('as_volume') || '80', 10);
+    try { State.artistTrackHistory = JSON.parse(localStorage.getItem('as_track_history') || '{}'); } catch { State.artistTrackHistory = {}; }
     State.activeListId    = localStorage.getItem('as_active_list') || null;
     State.blacklistEnabled = localStorage.getItem('as_blacklist_enabled') !== 'false';
     // Migration
@@ -83,7 +92,7 @@ const LS = {
   },
 };
 
-function defaultFilters() { return { noLive: false, noInstrumental: false, noAcoustic: false, noOrchestral: false, artistRepeatLimit: 3, yearFrom: null, yearTo: null }; }
+function defaultFilters() { return { noLive: false, noInstrumental: false, noAcoustic: false, noOrchestral: false, artistRepeatLimit: 3, noRepeat: true, yearFrom: null, yearTo: null }; }
 
 // ── SYNC ──────────────────────────────────────────────────────────────────────
 const Sync = {
@@ -161,6 +170,28 @@ const Sync = {
     if (!this.url) return false;
     const ok = await this._request('POST', '/api/blacklist', { blacklist: State.blacklist });
     if (ok) console.log('[Sync] Blacklist saved:', State.blacklist.length, 'tracks');
+    return !!ok;
+  },
+
+  async loadTrackHistory() {
+    if (!this.url) return false;
+    const data = await this._request('GET', '/api/track-history');
+    if (!data?.history) return false;
+    // Mergen: Server + lokal (Union aller Track-IDs pro Artist)
+    for (const [artistId, serverTracks] of Object.entries(data.history)) {
+      const local = State.artistTrackHistory[artistId] || [];
+      const merged = [...new Set([...serverTracks, ...local])];
+      State.artistTrackHistory[artistId] = merged;
+    }
+    localStorage.setItem('as_track_history', JSON.stringify(State.artistTrackHistory));
+    console.log('[Sync] Track history loaded:', Object.keys(data.history).length, 'artists');
+    return true;
+  },
+
+  async saveTrackHistory() {
+    if (!this.url) return false;
+    const ok = await this._request('POST', '/api/track-history', { history: State.artistTrackHistory });
+    if (ok) console.log('[Sync] Track history saved:', Object.keys(State.artistTrackHistory).length, 'artists');
     return !!ok;
   },
 
@@ -254,11 +285,13 @@ async function bootApp() {
   if (synced) console.log('[Sync] Synced');
   await Sync.loadStats();
   await Sync.loadBlacklist();
+  await Sync.loadTrackHistory();
 
-  // Album-Cache vom Sync-Server laden — reduziert Spotify API Calls beim Start
+  // Album- und Track-Cache vom Sync-Server laden — reduziert Spotify API Calls beim Start
   if (Sync.url) {
     SpotifyAPI.setServerCacheUrl(Sync.url);
     SpotifyAPI.loadServerCache();
+    SpotifyAPI.loadServerTrackCache();
   }
 
   renderLists();
@@ -558,7 +591,6 @@ function renderArtistGrid() {
         <div class="artist-card-name">${escHtml(artist.name)}</div>
         ${genre ? `<div class="artist-card-genre">${escHtml(genre)}</div>` : ''}
         <button class="artist-card-remove"   data-id="${artist.id}" title="Entfernen">✕</button>
-        <button class="artist-card-discovery" data-id="${artist.id}" data-name="${escHtml(artist.name)}" title="Ähnliche Artists">+</button>
         <button class="artist-card-favorite ${artist.favorite ? 'active' : ''}" data-id="${artist.id}" title="Favorit">⭐</button>
       `;
       grid.appendChild(card);
@@ -596,16 +628,108 @@ function removeArtistFromList(artistId) {
 // ── ALBUM BROWSER ─────────────────────────────────────────────────────────────
 let _albumBrowserSelected = new Set();
 
+function _switchAlbumBrowserTab(tab) {
+  const tabAlbums  = document.getElementById('tab-albums');
+  const tabStatus  = document.getElementById('tab-trackstatus');
+  const btnAlbums  = document.getElementById('tab-albums-btn');
+  const btnStatus  = document.getElementById('tab-trackstatus-btn');
+  const confirmBtn = document.getElementById('confirm-album-browser');
+  if (tab === 'albums') {
+    tabAlbums.classList.remove('hidden');
+    tabStatus.classList.add('hidden');
+    btnAlbums.classList.add('active');
+    btnStatus.classList.remove('active');
+    confirmBtn.style.display = '';
+  } else {
+    tabAlbums.classList.add('hidden');
+    tabStatus.classList.remove('hidden');
+    btnAlbums.classList.remove('active');
+    btnStatus.classList.add('active');
+    confirmBtn.style.display = 'none';
+    // Track-Status laden
+    const modal      = document.getElementById('modal-album-browser');
+    const artistId   = modal.dataset.artistId;
+    const artistName = modal.dataset.artistName;
+    renderTrackStatus(artistId, artistName);
+  }
+}
+
+async function renderTrackStatus(artistId, artistName) {
+  const list    = document.getElementById('trackstatus-list');
+  const sub     = document.getElementById('trackstatus-sub');
+  const played  = new Set(State.artistTrackHistory[artistId] || []);
+  list.innerHTML = `<p style="color:var(--text3);text-align:center;padding:20px">⏳ Lade Tracks…</p>`;
+
+  try {
+    const albums = await SpotifyAPI.getArtistAlbumsFull(artistId);
+    const activeList = getActiveList();
+    const filters    = activeList?.filters || defaultFilters();
+    const blacklistSet = State.blacklistEnabled ? new Set(State.blacklist.map(b => b.id)) : new Set();
+
+    // Alle Tracks aus allen Alben sammeln
+    const token = await SpotifyAPI.getToken();
+    let allTracks = [];
+    for (const album of albums.slice(0, 20)) {
+      const res = await fetch(`https://api.spotify.com/v1/albums/${album.id}/tracks?limit=50&market=from_token`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      (data.items || []).forEach(t => {
+        allTracks.push({ id: t.id, name: t.name, album: album.name, albumId: album.id });
+      });
+    }
+
+    // Filtern wie beim Shuffle (Blacklist)
+    allTracks = allTracks.filter(t => !blacklistSet.has(t.id));
+    // Duplikate entfernen
+    const seen = new Set();
+    allTracks = allTracks.filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
+
+    const total    = allTracks.length;
+    const playedN  = allTracks.filter(t => played.has(t.id)).length;
+    const remaining = total - playedN;
+
+    sub.textContent = `${playedN} / ${total} gespielt — ${remaining} noch offen`;
+
+    // Sortieren: offen zuerst, dann gespielt
+    allTracks.sort((a, b) => {
+      const aP = played.has(a.id);
+      const bP = played.has(b.id);
+      if (aP === bP) return a.name.localeCompare(b.name);
+      return aP ? 1 : -1;
+    });
+
+    list.innerHTML = '';
+    allTracks.forEach(t => {
+      const isPlayed = played.has(t.id);
+      const item = document.createElement('div');
+      item.className = 'trackstatus-item' + (isPlayed ? ' played' : '');
+      item.innerHTML = `
+        <span class="ts-icon">${isPlayed ? '✅' : '🔒'}</span>
+        <span class="ts-name" title="${escHtml(t.name)}">${escHtml(t.name)}</span>
+        <span class="ts-album" title="${escHtml(t.album)}">${escHtml(t.album)}</span>`;
+      list.appendChild(item);
+    });
+  } catch (err) {
+    list.innerHTML = `<p style="color:var(--danger);padding:20px">Fehler: ${escHtml(err.message)}</p>`;
+  }
+}
+
 async function showAlbumBrowser(artistId, artistName) {
   _albumBrowserSelected = new Set();
   document.getElementById('album-browser-title').textContent = artistName;
   document.getElementById('album-browser-sub').textContent   = 'Wähle Alben aus';
+  _switchAlbumBrowserTab('albums');
+  const modal = document.getElementById('modal-album-browser');
+  modal.dataset.artistId   = artistId;
+  modal.dataset.artistName = artistName;
   const grid = document.getElementById('album-browser-grid');
   const btn  = document.getElementById('confirm-album-browser');
   grid.innerHTML = '<p style="color:var(--text3);text-align:center;padding:20px">Lade Diskografie…</p>';
   btn.disabled   = true;
   btn.textContent = 'Hinzufügen';
-  document.getElementById('modal-album-browser').classList.remove('hidden');
+  modal.classList.remove('hidden');
 
   try {
     const albums = await SpotifyAPI.getArtistAlbumsFull(artistId);
@@ -903,6 +1027,7 @@ function updateFiltersUI() {
   document.getElementById('filter-no-orchestral').checked = !!f.noOrchestral;
   const repeatLimit = document.getElementById('filter-artist-repeat-limit');
   if (repeatLimit) repeatLimit.value = f.artistRepeatLimit ?? 3;
+  document.getElementById('filter-no-repeat').checked = f.noRepeat !== false;
 
   const fromInput = document.getElementById('filter-year-from');
   const fromBtn   = document.getElementById('filter-year-from-toggle');
@@ -926,6 +1051,7 @@ function saveFilters() {
     noAcoustic:      document.getElementById('filter-no-acoustic').checked,
     noOrchestral:    document.getElementById('filter-no-orchestral').checked,
     artistRepeatLimit: parseInt(document.getElementById('filter-artist-repeat-limit').value, 10) || 3,
+    noRepeat:          document.getElementById('filter-no-repeat').checked,
     yearFrom:        parseInt(document.getElementById('filter-year-from').value, 10) || null,
     yearTo:          parseInt(document.getElementById('filter-year-to').value,   10) || null,
   };
@@ -938,6 +1064,7 @@ function updateFiltersBadge(f) {
   if (f.noInstrumental)  n++;
   if (f.noAcoustic)      n++;
   if (f.noOrchestral)    n++;
+  if (f.noRepeat === false) n++; // zählt wenn deaktiviert (ungewöhnlich)
   if (f.artistRepeatLimit && f.artistRepeatLimit !== 3) n++;
   if (f.yearFrom)        n++;
   if (f.yearTo)          n++;
@@ -1034,7 +1161,7 @@ async function doShuffle() {
       if (track) State.shuffleLog.unshift({ trackName: track.name, artistName: picked.data.artistName, reason: '💿 Album', ts: Date.now() });
     } else {
       const artist = State.smartShuffle ? pickSmartArtist(list.artists) : picked.data;
-      track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew, State.artistTrackHistory, filters.artistRepeatLimit ?? 3);
+      track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew, filters.noRepeat !== false ? State.artistTrackHistory : {}, filters.artistRepeatLimit ?? 3);
       if (track) State.shuffleLog.unshift({ trackName: track.name, artistName: artist.name, reason: artist.favorite ? '⭐ Favorit' : State.smartShuffle ? '🧠 Smart' : '🎲 Zufall', ts: Date.now() });
     }
 
@@ -1086,7 +1213,7 @@ async function fillQueue() {
         track = await SpotifyAPI.getRandomTrackFromAlbum(picked.data.id, picked.data, blacklistSet, State.historyIds, State.onlyNew);
       } else {
         const artist = State.roundRobin ? picked.data : (State.smartShuffle ? pickSmartArtist(list.artists) : picked.data);
-        if (artist) track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew, State.artistTrackHistory, filters.artistRepeatLimit ?? 3);
+        if (artist) track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklistSet, State.historyIds, State.onlyNew, filters.noRepeat !== false ? State.artistTrackHistory : {}, filters.artistRepeatLimit ?? 3);
       }
     } catch {}
     if (track && !State.queue.find(q => q.id === track.id)) { State.queue.push(track); renderQueue(); }
@@ -1257,8 +1384,10 @@ function checkAndAddToHistory(track) {
   // Artist-Track-History pflegen
   if (track.artistId) {
     if (!State.artistTrackHistory[track.artistId]) State.artistTrackHistory[track.artistId] = [];
-    if (!State.artistTrackHistory[track.artistId].includes(track.id))
+    if (!State.artistTrackHistory[track.artistId].includes(track.id)) {
       State.artistTrackHistory[track.artistId].push(track.id);
+      LS.saveTrackHistoryDebounced();
+    }
   }
   renderHistory();
   trackPlay(track);
@@ -1422,52 +1551,6 @@ function showMergeModal() {
 }
 
 // ── DISCOVERY ─────────────────────────────────────────────────────────────────
-async function showDiscovery(artistId, artistName) {
-  const modal    = document.getElementById('modal-discovery');
-  const subtitle = document.getElementById('discovery-subtitle');
-  const results  = document.getElementById('discovery-results');
-  subtitle.textContent = `Ähnliche Artists wie "${artistName}"`;
-  results.innerHTML    = `<p style="color:var(--text3);text-align:center;padding:20px">${I18N.t('discovery_loading')}</p>`;
-  modal.classList.remove('hidden');
-  try {
-    const related = await SpotifyAPI.getRelatedArtists(artistId);
-    results.innerHTML = '';
-    if (!related.length) { results.innerHTML = `<p style="color:var(--text3);text-align:center;padding:20px">${I18N.t('discovery_none')}</p>`; return; }
-    const list       = getActiveList();
-    const existingIds = new Set(list?.artists?.map(a => a.id) || []);
-    related.slice(0, 20).forEach(artist => {
-      const card    = document.createElement('div');
-      const isAdded = existingIds.has(artist.id);
-      card.className = 'discovery-card' + (isAdded ? ' added' : '');
-      const img = artist.images?.[1]?.url || artist.images?.[0]?.url || '';
-      card.innerHTML = `
-        <img src="${img}" alt="${escHtml(artist.name)}" onerror="this.style.background='#282828'" />
-        <div class="discovery-card-name">${escHtml(artist.name)}</div>
-        <div class="discovery-card-btn">${isAdded ? '✓ In Liste' : '+ Hinzufügen'}</div>`;
-      if (!isAdded) {
-        card.addEventListener('click', () => {
-          addArtistToList(artist);
-          card.classList.add('added');
-          card.querySelector('.discovery-card-btn').textContent = I18N.t('discovery_added');
-          existingIds.add(artist.id);
-        });
-      }
-      results.appendChild(card);
-    });
-  } catch (err) {
-    const isForbidden = err.message?.includes('Forbidden') || err.message?.includes('403');
-    if (isForbidden) {
-      results.innerHTML = `
-        <div style="padding:20px;text-align:center">
-          <p style="font-size:1.5rem;margin:0 0 8px">🔒</p>
-          <p style="color:var(--text);font-weight:600;margin:0 0 6px">${I18N.t('discovery_forbidden_title')}</p>
-          <p style="color:var(--text2);font-size:0.85rem;margin:0">${I18N.t('discovery_forbidden_body')}</p>
-        </div>`;
-    } else {
-      results.innerHTML = `<p style="color:var(--danger);padding:20px">Fehler: ${escHtml(err.message)}</p>`;
-    }
-  }
-}
 
 // ── FULLSCREEN ────────────────────────────────────────────────────────────────
 function toggleFullscreen() { document.getElementById('fullscreen-overlay').classList.toggle('hidden'); }
@@ -1806,6 +1889,8 @@ function bindAllEvents() {
 
   // Album browser
   document.getElementById('close-album-browser')?.addEventListener('click', () => document.getElementById('modal-album-browser').classList.add('hidden'));
+  document.getElementById('tab-albums-btn')?.addEventListener('click', () => _switchAlbumBrowserTab('albums'));
+  document.getElementById('tab-trackstatus-btn')?.addEventListener('click', () => _switchAlbumBrowserTab('trackstatus'));
   document.getElementById('confirm-album-browser')?.addEventListener('click', addSelectedAlbumsToList);
 
   // Artist grid
@@ -1813,9 +1898,6 @@ function bindAllEvents() {
     const card = e.target.closest('.artist-card');
     if (!card) return;
     const removeBtn   = e.target.closest('.artist-card-remove');
-    const discoverBtn = e.target.closest('.artist-card-discovery');
-    const favoriteBtn = e.target.closest('.artist-card-favorite');
-    if (removeBtn)   { removeArtistFromList(removeBtn.dataset.id); return; }
     if (discoverBtn) { showDiscovery(discoverBtn.dataset.id, discoverBtn.dataset.name); return; }
     if (favoriteBtn) { toggleArtistFavorite(favoriteBtn.dataset.id); return; }
     const artist = getActiveList()?.artists?.find(a => a.id === card.dataset.artistId);
@@ -1825,9 +1907,6 @@ function bindAllEvents() {
   // Artist stats close
   document.getElementById('close-artist-stats')?.addEventListener('click', () => document.getElementById('modal-artist-stats').classList.add('hidden'));
 
-  // Discovery
-  document.getElementById('discovery-btn').addEventListener('click', () => { if (State.currentTrack?.artistId) showDiscovery(State.currentTrack.artistId, State.currentTrack.artist); });
-  document.getElementById('close-discovery').addEventListener('click', () => document.getElementById('modal-discovery').classList.add('hidden'));
 
   // Changelog
   document.getElementById('changelog-btn')?.addEventListener('click', showChangelog);
@@ -1936,6 +2015,7 @@ function bindAllEvents() {
   document.getElementById('filter-no-acoustic').addEventListener('change', saveFilters);
   document.getElementById('filter-no-orchestral').addEventListener('change', saveFilters);
   document.getElementById('filter-artist-repeat-limit').addEventListener('change', saveFilters);
+  document.getElementById('filter-no-repeat').addEventListener('change', saveFilters);
   document.getElementById('filter-year-from').addEventListener('change', saveFilters);
   document.getElementById('filter-year-to').addEventListener('change', saveFilters);
   ['from', 'to'].forEach(dir => {
@@ -2013,7 +2093,7 @@ function bindAllEvents() {
   document.getElementById('sync-btn')?.addEventListener('click', async () => {
     const btn = document.getElementById('sync-btn');
     btn.classList.add('spinning');
-    const [ok] = await Promise.all([Sync.load(), Sync.loadStats(), Sync.loadBlacklist()]);
+    const [ok] = await Promise.all([Sync.load(), Sync.loadStats(), Sync.loadBlacklist(), Sync.loadTrackHistory()]);
     btn.classList.remove('spinning');
     if (ok) { renderLists(); renderArtistGrid(); renderAlbumGrid(); updateFiltersUI(); renderStats(); renderBlacklist(); showToast(I18N.t('toast_synced'), 'success'); }
     else showToast('Sync fehlgeschlagen', 'error');
@@ -2030,6 +2110,43 @@ function bindAllEvents() {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
+  {
+    version: '1.4.0',
+    date: '2026-05-09',
+    label: { de: 'Cache & History Release', en: 'Cache & History Release' },
+    added: {
+      de: [
+        'Track-Status Tab im Album-Browser — zeigt alle Tracks eines Artists mit Status ✅ gespielt / 🔒 noch offen',
+        'Track-Cache auf dem Sync-Server — Album-Tracks werden serverseitig gecacht (/api/tracks), eliminiert 429er nach dem ersten Durchlauf',
+        'Track-History Sync — gespielte Tracks pro Artist werden geräteübergreifend gespeichert (/api/track-history)',
+        'Track-History Persistenz — artistTrackHistory wird in localStorage gespeichert, überlebt Browser-Neustart',
+        '🔒 Keine Track-Wiederholungen — neuer Filter pro Liste, schaltet die Artist-Track-Sperre ein/aus (Standard: aktiv)',
+        'PWA Icons auf SF-Logo aktualisiert (96, 128, 192, 512px)',
+      ],
+      en: [
+        'Track status tab in album browser — shows all tracks for an artist with status ✅ played / 🔒 still locked',
+        'Track cache on sync server — album tracks cached server-side (/api/tracks), eliminates 429s after first run',
+        'Track history sync — played tracks per artist stored across devices (/api/track-history)',
+        'Track history persistence — artistTrackHistory saved to localStorage, survives browser restart',
+        '🔒 No track repeats — new per-list filter to toggle the artist track lock on/off (default: on)',
+        'PWA icons updated to SF logo (96, 128, 192, 512px)',
+      ],
+    },
+    changed: {
+      de: [
+        'Discovery (Ähnliche Artists) entfernt — Spotify hat diesen Endpunkt für Development Mode Apps dauerhaft gesperrt',
+        'Live-Filter prüft jetzt auch Tracknamen auf eindeutige Muster (" live", "(live", "live at ", "live in ")',
+        'manifest.json theme_color auf Ember Orange (#E8600A) aktualisiert',
+        'DEPLOYMENT.md, CONTRIBUTING.md, SYNC-SERVER.md komplett neu geschrieben',
+      ],
+      en: [
+        'Discovery (Similar Artists) removed — Spotify has permanently restricted this endpoint for Development Mode apps',
+        'Live filter now also checks track names for unambiguous patterns (" live", "(live", "live at ", "live in ")',
+        'manifest.json theme_color updated to Ember Orange (#E8600A)',
+        'DEPLOYMENT.md, CONTRIBUTING.md, SYNC-SERVER.md completely rewritten',
+      ],
+    },
+  },
   {
     version: '1.3.3',
     date: '2026-04-25',
@@ -2256,8 +2373,8 @@ const CHANGELOG = [
     version: '1.0.0', date: '2026-03-26',
     label: { de: 'Erster Release', en: 'Initial Release' },
     added: {
-      de: ['Shuffle durch gesamte Diskografie', 'Smart Shuffle', 'Favoriten-Artists', 'Genre-Listen', 'Queue & Verlauf', 'Blacklist', 'Crossfade', 'Auto-Skip', 'Shuffle-Log', 'Discovery', 'Listen-Verwaltung', 'Import / Export', 'Sync-Server', 'PWA', 'Vollbild', 'Statistiken', 'Mehrsprachig', 'Tastatur-Shortcuts'],
-      en: ['Full discography shuffle', 'Smart Shuffle', 'Favorite artists', 'Genre lists', 'Queue & history', 'Blacklist', 'Crossfade', 'Auto-Skip', 'Shuffle log', 'Discovery', 'List management', 'Import / Export', 'Sync server', 'PWA', 'Fullscreen', 'Statistics', 'Multilingual', 'Keyboard shortcuts'],
+      de: ['Shuffle durch gesamte Diskografie', 'Smart Shuffle', 'Favoriten-Artists', 'Genre-Listen', 'Queue & Verlauf', 'Blacklist', 'Crossfade', 'Auto-Skip', 'Shuffle-Log', 'Listen-Verwaltung', 'Import / Export', 'Sync-Server', 'PWA', 'Vollbild', 'Statistiken', 'Mehrsprachig', 'Tastatur-Shortcuts'],
+      en: ['Full discography shuffle', 'Smart Shuffle', 'Favorite artists', 'Genre lists', 'Queue & history', 'Blacklist', 'Crossfade', 'Auto-Skip', 'Shuffle log', 'List management', 'Import / Export', 'Sync server', 'PWA', 'Fullscreen', 'Statistics', 'Multilingual', 'Keyboard shortcuts'],
     },
   },
 ];

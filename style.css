@@ -589,19 +589,6 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .artist-card:hover .artist-card-remove { opacity: 1; }
 .artist-card-remove:hover { background: var(--danger); color: var(--text); }
 
-.artist-card-discovery {
-  position: absolute; bottom: 4px; right: 4px;
-  width: 20px; height: 20px;
-  background: var(--accent-glow);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0;
-  transition: opacity var(--trans);
-  color: var(--accent);
-  font-size: 10px;
-}
-.artist-card:hover .artist-card-discovery { opacity: 1; }
-.artist-card-discovery:hover { background: var(--accent); color: var(--sf-anvil-900); }
 
 /* ── LIST EMPTY ── */
 .list-empty {
@@ -1073,29 +1060,6 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .modal-btns { display: flex; justify-content: flex-end; gap: 10px; }
 
 /* Discovery grid */
-.discovery-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px; max-height: 320px; overflow-y: auto; margin-bottom: 16px;
-}
-.discovery-card {
-  background: var(--bg4);
-  border-radius: var(--radius); padding: 12px 8px;
-  text-align: center; cursor: pointer;
-  border: 2px solid transparent;
-  transition: all var(--trans);
-}
-.discovery-card:hover { border-color: var(--accent); background: var(--bg5); transform: translateY(-2px); }
-.discovery-card.added { border-color: var(--accent); background: var(--accent-glow); }
-.discovery-card img {
-  width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
-  background: var(--bg5); margin-bottom: 8px;
-}
-.discovery-card-name { font-size: 0.75rem; font-weight: 600; }
-.discovery-card-btn {
-  margin-top: 6px; font-size: 0.7rem; color: var(--accent);
-  font-weight: 600;
-}
-.discovery-card.added .discovery-card-btn { color: var(--text3); }
 
 /* ══════════════════════════════════════
    TOAST NOTIFICATIONS
@@ -1693,3 +1657,36 @@ kbd {
   font-family: var(--font-body); font-size: 0.75rem;
   padding: 4px 8px; outline: none;
 }
+
+/* ── Album Browser Tabs ───────────────────────────────────────────────────── */
+.album-browser-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px 8px;
+  margin-bottom: -1px;
+  transition: color var(--trans), border-color var(--trans);
+}
+.album-browser-tab:hover  { color: var(--text); }
+.album-browser-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Track-Status List ────────────────────────────────────────────────────── */
+.trackstatus-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  background: var(--bg3);
+}
+.trackstatus-item.played  { opacity: 0.55; }
+.trackstatus-item .ts-icon { flex-shrink: 0; font-size: 0.9rem; width: 18px; text-align: center; }
+.trackstatus-item .ts-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trackstatus-item .ts-album { font-size: 0.72rem; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+

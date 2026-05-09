@@ -15,6 +15,8 @@ const DATA_FILE  = process.env.DATA_FILE  || '/data/lists.json';
 const STATS_FILE = process.env.STATS_FILE || '/data/stats.json';
 const CACHE_FILE      = process.env.CACHE_FILE      || '/data/cache.json';
 const BLACKLIST_FILE  = process.env.BLACKLIST_FILE  || '/data/blacklist.json';
+const TRACKS_FILE     = process.env.TRACKS_FILE     || '/data/tracks.json';
+const HISTORY_FILE    = process.env.HISTORY_FILE    || '/data/track-history.json';
 
 // ── DATEN LADEN / SPEICHERN ──────────────────────────────
 function loadData() {
@@ -111,6 +113,40 @@ function saveBlacklist(data) {
     console.error('[Sync] Fehler beim Speichern der Blacklist:', err.message);
     return false;
   }
+}
+
+function loadTracks() {
+  try {
+    if (fs.existsSync(TRACKS_FILE)) return JSON.parse(fs.readFileSync(TRACKS_FILE, 'utf8'));
+  } catch (err) { console.error('[Sync] Fehler beim Laden des Track-Cache:', err.message); }
+  return { cache: {}, updatedAt: null };
+}
+
+function saveTracks(data) {
+  try {
+    const dir = path.dirname(TRACKS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    data.updatedAt = new Date().toISOString();
+    fs.writeFileSync(TRACKS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (err) { console.error('[Sync] Fehler beim Speichern des Track-Cache:', err.message); return false; }
+}
+
+function loadHistory() {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+  } catch (err) { console.error('[Sync] Fehler beim Laden der Track-History:', err.message); }
+  return { history: {}, updatedAt: null };
+}
+
+function saveHistory(data) {
+  try {
+    const dir = path.dirname(HISTORY_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    data.updatedAt = new Date().toISOString();
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (err) { console.error('[Sync] Fehler beim Speichern der Track-History:', err.message); return false; }
 }
 
 // ── HTTP HELPERS ──────────────────────────────────────────
@@ -236,6 +272,54 @@ const server = http.createServer(async (req, res) => {
       data.cache = data.cache || {};
       data.cache[body.artistId] = { albums: body.albums, ts: body.ts || Date.now() };
       const ok = saveCache(data);
+      sendJSON(res, ok ? 200 : 500, { success: ok });
+    } catch (err) {
+      sendJSON(res, 400, { error: err.message });
+    }
+    return;
+  }
+
+  // ── GET /api/track-history — Artist Track History laden
+  if (req.method === 'GET' && pathname === '/api/track-history') {
+    sendJSON(res, 200, loadHistory());
+    return;
+  }
+
+  // ── POST /api/track-history — Artist Track History speichern
+  if (req.method === 'POST' && pathname === '/api/track-history') {
+    try {
+      const body = await readBody(req);
+      if (typeof body.history !== 'object' || Array.isArray(body.history)) {
+        sendJSON(res, 400, { error: 'Invalid data — history object required' });
+        return;
+      }
+      const ok = saveHistory({ history: body.history });
+      sendJSON(res, ok ? 200 : 500, { success: ok });
+    } catch (err) {
+      sendJSON(res, 400, { error: err.message });
+    }
+    return;
+  }
+
+  // ── GET /api/tracks — Track-Cache laden
+  if (req.method === 'GET' && pathname === '/api/tracks') {
+    const data = loadTracks();
+    sendJSON(res, 200, data);
+    return;
+  }
+
+  // ── POST /api/tracks — Track-Cache Eintrag speichern
+  if (req.method === 'POST' && pathname === '/api/tracks') {
+    try {
+      const body = await readBody(req);
+      if (!body.albumId || !Array.isArray(body.tracks)) {
+        sendJSON(res, 400, { error: 'Invalid data — albumId and tracks required' });
+        return;
+      }
+      const data = loadTracks();
+      data.cache = data.cache || {};
+      data.cache[body.albumId] = { tracks: body.tracks, ts: body.ts || Date.now() };
+      const ok = saveTracks(data);
       sendJSON(res, ok ? 200 : 500, { success: ok });
     } catch (err) {
       sendJSON(res, 400, { error: err.message });

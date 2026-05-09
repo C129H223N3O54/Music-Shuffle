@@ -5,8 +5,8 @@
   "start_url": "/music-shuffle/",
   "scope": "/music-shuffle/",
   "display": "standalone",
-  "background_color": "#0d0d0d",
-  "theme_color": "#00C8B4",
+  "background_color": "#0F0F0F",
+  "theme_color": "#E8600A",
   "orientation": "portrait-primary",
   "icons": [
     {
