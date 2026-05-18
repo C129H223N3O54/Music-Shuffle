@@ -61,8 +61,43 @@
   --trans-slow:   var(--sf-transition-slow, 0.28s ease);
   --font-head:    Verdana, Geneva, "DejaVu Sans", Tahoma, sans-serif;
   --font-body:    Verdana, Geneva, "DejaVu Sans", Tahoma, sans-serif;
-  --shadow:       0 8px 32px rgba(0,0,0,0.6);
-  --shadow-sm:    0 2px 8px rgba(0,0,0,0.4);
+  --shadow:       var(--ms-shadow);
+  --shadow-sm:    var(--ms-shadow-sm);
+}
+
+/* ── Light Mode Token Overrides ── */
+:root[data-theme="light"] {
+  --bg:           var(--sf-anvil-50);
+  --bg2:          #FFFFFF;
+  --bg3:          var(--sf-anvil-100);
+  --bg4:          var(--sf-anvil-100);
+  --bg5:          var(--sf-anvil-200);
+  --border:       var(--sf-anvil-200);
+  --accent:       var(--sf-ember-500);
+  --accent-dim:   var(--sf-ember-600);
+  --accent-glow:  rgba(232, 96, 10, 0.12);
+  --text:         var(--sf-anvil-900);
+  --text2:        var(--sf-anvil-500);
+  --text3:        var(--sf-anvil-400);
+  --danger:       #C04444;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:           var(--sf-anvil-50);
+    --bg2:          #FFFFFF;
+    --bg3:          var(--sf-anvil-100);
+    --bg4:          var(--sf-anvil-100);
+    --bg5:          var(--sf-anvil-200);
+    --border:       var(--sf-anvil-200);
+    --accent:       var(--sf-ember-500);
+    --accent-dim:   var(--sf-ember-600);
+    --accent-glow:  rgba(232, 96, 10, 0.12);
+    --text:         var(--sf-anvil-900);
+    --text2:        var(--sf-anvil-500);
+    --text3:        var(--sf-anvil-400);
+    --danger:       #C04444;
+  }
 }
 
 html { font-size: 15px; }
@@ -90,7 +125,7 @@ body {
 .bg-blur.active { opacity: 1; }
 .bg-overlay {
   position: fixed; inset: 0; z-index: 1;
-  background: rgba(15,15,15,0.85);
+  background: var(--ms-overlay);
   pointer-events: none;
 }
 
@@ -248,7 +283,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
   color: var(--text2);
   transition: color var(--trans), background var(--trans);
 }
-.btn-icon:hover { color: var(--text); background: var(--bg5); }
+.btn-icon:hover { color: var(--accent); background: var(--accent-glow); }
 .btn-accent { background: var(--accent) !important; color: var(--sf-anvil-900) !important; }
 .btn-accent:hover { background: var(--sf-ember-200) !important; }
 
@@ -270,8 +305,9 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .sidebar {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
-  background: rgba(18,18,18,0.96);
+  background: var(--sf-surface);
   border-right: 1px solid var(--border);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   display: flex; flex-direction: column;
   height: 100vh;
   overflow: hidden;
@@ -559,7 +595,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
   background: var(--bg5);
   margin-bottom: 8px;
   display: block;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: var(--ms-shadow-sm);
 }
 .artist-card-name {
   font-size: 0.78rem;
@@ -578,7 +614,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .artist-card-remove {
   position: absolute; top: 4px; right: 4px;
   width: 20px; height: 20px;
-  background: rgba(0,0,0,0.6);
+  background: var(--ms-modal-bg);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   opacity: 0;
@@ -820,7 +856,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .album-art-shadow {
   position: absolute;
   inset: 20px -8px -20px;
-  background: var(--accent-shadow, rgba(0,0,0,0.7));
+  background: var(--ms-modal-bg);
   border-radius: var(--radius-lg);
   filter: blur(30px);
   z-index: 0;
@@ -834,7 +870,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
   box-shadow:
     0 8px 16px rgba(0,0,0,0.4),
     0 24px 64px rgba(0,0,0,0.5),
-    0 0 0 1px rgba(255,255,255,0.05);
+    0 0 0 1px rgba(255,255,255,0.05); /* keep */
   transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
 }
 .album-art.changing {
@@ -864,12 +900,12 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
   cursor: default;
 }
 .track-artist {
-  font-size: 0.875rem; color: var(--text2); font-weight: 500;
+  font-size: 0.875rem; color: var(--text); font-weight: 500;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   width: 100%; cursor: default;
 }
 .track-album {
-  font-size: 0.78rem; color: var(--text3); margin-top: 2px;
+  font-size: 0.78rem; color: var(--text2); margin-top: 2px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   width: 100%; cursor: default;
 }
@@ -917,14 +953,14 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 }
 .btn-play {
   width: 58px; height: 58px;
-  background: var(--text);
-  color: var(--bg);
+  background: var(--bg5);
+  color: var(--text);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  transition: background var(--trans), transform var(--trans);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  transition: background var(--trans), color var(--trans), transform var(--trans);
+  box-shadow: var(--ms-shadow-sm);
 }
-.btn-play:hover { background: #f0f0f0; transform: scale(1.05); }
+.btn-play:hover { background: var(--accent); color: var(--sf-anvil-900); transform: scale(1.05); }
 .btn-play:active { transform: scale(0.97); }
 
 .btn-ctrl {
@@ -932,7 +968,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
   color: var(--text2);
   border-radius: 50%;
 }
-.btn-ctrl:hover { color: var(--text); background: var(--bg4); }
+.btn-ctrl:hover { color: var(--accent); background: var(--accent-glow); }
 
 .controls-secondary {
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -943,7 +979,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
   color: var(--text3);
   border-radius: 50%;
 }
-.btn-ctrl-sm:hover { color: var(--text2); background: var(--bg4); }
+.btn-ctrl-sm:hover { color: var(--accent); background: var(--accent-glow); }
 .btn-ctrl-sm.active { color: var(--accent); }
 
 /* Volume */
@@ -959,7 +995,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .fullscreen-overlay {
   position: fixed; inset: 0; z-index: 500;
   display: flex; align-items: center; justify-content: center;
-  background: #000;
+  background: var(--sf-anvil-900);
 }
 .fs-bg {
   position: absolute; inset: 0;
@@ -979,7 +1015,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
   width: min(360px, 70vw); aspect-ratio: 1;
   border-radius: var(--radius-xl);
   object-fit: cover;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  box-shadow: var(--ms-shadow);
 }
 .fs-info h1 {
   font-family: var(--font-head);
@@ -991,11 +1027,11 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .fs-controls { display: flex; align-items: center; gap: 20px; }
 .btn-fs {
   width: 52px; height: 52px;
-  background: rgba(255,255,255,0.1);
+  background: var(--ms-glass);
   border-radius: 50%; color: var(--text);
   backdrop-filter: blur(10px);
 }
-.btn-fs:hover { background: rgba(255,255,255,0.2); }
+.btn-fs:hover { background: var(--ms-glass-hover); }
 .btn-fs-play {
   width: 72px; height: 72px;
   background: var(--text); color: var(--bg);
@@ -1007,19 +1043,19 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 .fs-exit {
   position: absolute; top: 20px; right: 20px;
   width: 40px; height: 40px;
-  background: rgba(255,255,255,0.1);
+  background: var(--ms-glass);
   border-radius: 50%; color: var(--text2);
   display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(10px);
 }
-.fs-exit:hover { background: rgba(255,255,255,0.2); color: var(--text); }
+.fs-exit:hover { background: var(--ms-glass-hover); color: var(--text); }
 
 /* ══════════════════════════════════════
    MODALS
    ══════════════════════════════════════ */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(0,0,0,0.7);
+  background: var(--ms-modal-bg);
   display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.2s ease both;
@@ -1082,7 +1118,7 @@ button { cursor: pointer; border: none; background: none; color: inherit; font-f
 }
 .toast.toast-success { border-left: 3px solid var(--accent); }
 .toast.toast-error { border-left: 3px solid var(--danger); }
-.toast.toast-info { border-left: 3px solid #1976d2; }
+.toast.toast-info { border-left: 3px solid var(--sf-info); }
 .toast.removing { animation: toastOut 0.3s ease both; }
 
 /* ══════════════════════════════════════
@@ -1195,13 +1231,13 @@ kbd {
     position: fixed; left: 0; top: 0; bottom: 0; z-index: 50;
     transform: translateX(-100%);
     width: 85vw; max-width: 320px;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+    box-shadow: var(--ms-shadow);
   }
   .sidebar.open { transform: translateX(0); }
   .sidebar-backdrop {
     display: none;
     position: fixed; inset: 0; z-index: 49;
-    background: rgba(0,0,0,0.5);
+    background: var(--ms-modal-bg);
   }
   .sidebar-backdrop.visible { display: block; }
 
@@ -1256,7 +1292,7 @@ kbd {
 .search-result-selectable.selected .search-result-check {
   background: var(--accent); border-color: var(--accent);
 }
-.search-result-selectable.selected .check-icon { opacity: 1; stroke: #000; }
+.search-result-selectable.selected .check-icon { opacity: 1; stroke: var(--sf-anvil-900); }
 .search-result-selectable.selected { background: var(--accent-glow); }
 
 /* ── SYNC ── */
@@ -1323,7 +1359,7 @@ kbd {
 .artist-card-favorite {
   position: absolute; bottom: 4px; left: 4px;
   width: 20px; height: 20px;
-  background: rgba(0,0,0,0.6);
+  background: var(--ms-modal-bg);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   opacity: 0;
@@ -1445,7 +1481,7 @@ kbd {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0,0,0,0.5);
+  background: var(--ms-modal-bg);
 }
 .bottom-sheet-overlay.hidden { display: none; }
 .bottom-sheet {
@@ -1561,7 +1597,7 @@ kbd {
 .album-card-remove {
   position: absolute; top: 4px; right: 4px;
   width: 20px; height: 20px;
-  background: rgba(0,0,0,0.6); border-radius: 50%;
+  background: var(--ms-modal-bg); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; font-size: 10px; color: var(--text); cursor: pointer;
   transition: opacity var(--trans);
@@ -1583,7 +1619,7 @@ kbd {
 .album-browser-check {
   position: absolute; top: 8px; right: 8px;
   width: 20px; height: 20px;
-  background: rgba(0,0,0,0.6); border-radius: 50%;
+  background: var(--ms-modal-bg); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; color: transparent;
   border: 2px solid var(--border);

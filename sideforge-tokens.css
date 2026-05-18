@@ -154,6 +154,14 @@
   --sf-focus-ring:    0 0 0 3px rgba(232, 96, 10, 0.25);
   --sf-shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.04);
   --sf-shadow-md:     0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* Music Shuffle extras */
+  --ms-shadow:        0 8px 32px rgba(0, 0, 0, 0.12);
+  --ms-shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.08);
+  --ms-overlay:       rgba(240, 240, 240, 0.85);
+  --ms-modal-bg:      rgba(0, 0, 0, 0.3);
+  --ms-glass:         rgba(0, 0, 0, 0.1);
+  --ms-glass-hover:   rgba(0, 0, 0, 0.15);
 }
 
 
@@ -195,6 +203,14 @@
     --sf-focus-ring:    0 0 0 3px rgba(245, 160, 90, 0.35);
     --sf-shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.3);
     --sf-shadow-md:     0 2px 8px rgba(0, 0, 0, 0.4);
+
+    /* Music Shuffle extras */
+    --ms-shadow:        0 8px 32px rgba(0, 0, 0, 0.6);
+    --ms-shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.4);
+    --ms-overlay:       rgba(15, 15, 15, 0.85);
+    --ms-modal-bg:      rgba(0, 0, 0, 0.6);
+    --ms-glass:         rgba(255, 255, 255, 0.1);
+    --ms-glass-hover:   rgba(255, 255, 255, 0.2);
   }
 }
 
@@ -232,6 +248,14 @@
   --sf-focus-ring:    0 0 0 3px rgba(245, 160, 90, 0.35);
   --sf-shadow-sm:     0 1px 2px rgba(0, 0, 0, 0.3);
   --sf-shadow-md:     0 2px 8px rgba(0, 0, 0, 0.4);
+
+  /* Music Shuffle extras */
+  --ms-shadow:        0 8px 32px rgba(0, 0, 0, 0.6);
+  --ms-shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.4);
+  --ms-overlay:       rgba(15, 15, 15, 0.85);
+  --ms-modal-bg:      rgba(0, 0, 0, 0.6);
+  --ms-glass:         rgba(255, 255, 255, 0.1);
+  --ms-glass-hover:   rgba(255, 255, 255, 0.2);
 }
 
 

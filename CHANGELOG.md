@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] — 2026-05-18 — Light Mode & Restore
+
+### Added
+- **Light mode** — full light theme using Sideforge Anvil palette; follows `prefers-color-scheme` automatically; manually overridable via 🌙/☀️ toggle button in the sidebar header; preference saved to `localStorage`
+- **Last track restore** — the last played track (cover, title, artist, album, progress) is shown on app open after browser restart; pressing Play starts the track from the beginning
+- **Clear track history button** — red 🗑️ History button in the Stats tab clears the entire `artistTrackHistory` immediately, both locally and on the sync server
+
+### Changed
+- **Player buttons** — hover state now shows Ember orange color + glow instead of gray background; applies to all control buttons (repeat, volume, blacklist, notifications, round robin, etc.)
+- **Play/Pause button** — hover shows Ember orange; idle state is neutral (was always orange)
+- **Sidebar** — right edge now has rounded corners (`border-radius: 0 var(--radius-lg) var(--radius-lg) 0`)
+- **Track artist and album name** below cover — switched from `var(--text2)`/`var(--text3)` to `var(--text)`/`var(--text2)` for better contrast in light mode
+
+---
+
 ## [1.4.0] — 2026-05-09 — Cache & History Release
 
 ### Added
@@ -132,6 +147,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] — 2026-05-18 — Light Mode & Restore
+
+### Added
+- **Light mode** — full light theme using Sideforge Anvil palette; follows `prefers-color-scheme` automatically; manually overridable via 🌙/☀️ toggle button in the sidebar header; preference saved to `localStorage`
+- **Last track restore** — the last played track (cover, title, artist, album, progress) is shown on app open after browser restart; pressing Play starts the track from the beginning
+- **Clear track history button** — red 🗑️ History button in the Stats tab clears the entire `artistTrackHistory` immediately, both locally and on the sync server
+
+### Changed
+- **Player buttons** — hover state now shows Ember orange color + glow instead of gray background; applies to all control buttons (repeat, volume, blacklist, notifications, round robin, etc.)
+- **Play/Pause button** — hover shows Ember orange; idle state is neutral (was always orange)
+- **Sidebar** — right edge now has rounded corners (`border-radius: 0 var(--radius-lg) var(--radius-lg) 0`)
+- **Track artist and album name** below cover — switched from `var(--text2)`/`var(--text3)` to `var(--text)`/`var(--text2)` for better contrast in light mode
+
+---
+
 ## [1.4.0] — 2026-05-09 — Cache & History Release
 
 ### Added
@@ -246,6 +276,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Each artist and album has equal chance of being picked (1 entry each in pool)
 - Artists with more albums naturally provide more variety when selected
 - Smart Shuffle still applies — artists not played recently get higher weight
+
+---
+
+## [1.4.1] — 2026-05-18 — Light Mode & Restore
+
+### Added
+- **Light mode** — full light theme using Sideforge Anvil palette; follows `prefers-color-scheme` automatically; manually overridable via 🌙/☀️ toggle button in the sidebar header; preference saved to `localStorage`
+- **Last track restore** — the last played track (cover, title, artist, album, progress) is shown on app open after browser restart; pressing Play starts the track from the beginning
+- **Clear track history button** — red 🗑️ History button in the Stats tab clears the entire `artistTrackHistory` immediately, both locally and on the sync server
+
+### Changed
+- **Player buttons** — hover state now shows Ember orange color + glow instead of gray background; applies to all control buttons (repeat, volume, blacklist, notifications, round robin, etc.)
+- **Play/Pause button** — hover shows Ember orange; idle state is neutral (was always orange)
+- **Sidebar** — right edge now has rounded corners (`border-radius: 0 var(--radius-lg) var(--radius-lg) 0`)
+- **Track artist and album name** below cover — switched from `var(--text2)`/`var(--text3)` to `var(--text)`/`var(--text2)` for better contrast in light mode
 
 ---
 
@@ -382,6 +427,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] — 2026-05-18 — Light Mode & Restore
+
+### Added
+- **Light mode** — full light theme using Sideforge Anvil palette; follows `prefers-color-scheme` automatically; manually overridable via 🌙/☀️ toggle button in the sidebar header; preference saved to `localStorage`
+- **Last track restore** — the last played track (cover, title, artist, album, progress) is shown on app open after browser restart; pressing Play starts the track from the beginning
+- **Clear track history button** — red 🗑️ History button in the Stats tab clears the entire `artistTrackHistory` immediately, both locally and on the sync server
+
+### Changed
+- **Player buttons** — hover state now shows Ember orange color + glow instead of gray background; applies to all control buttons (repeat, volume, blacklist, notifications, round robin, etc.)
+- **Play/Pause button** — hover shows Ember orange; idle state is neutral (was always orange)
+- **Sidebar** — right edge now has rounded corners (`border-radius: 0 var(--radius-lg) var(--radius-lg) 0`)
+- **Track artist and album name** below cover — switched from `var(--text2)`/`var(--text3)` to `var(--text)`/`var(--text2)` for better contrast in light mode
+
+---
+
 ## [1.4.0] — 2026-05-09 — Cache & History Release
 
 ### Added
@@ -491,6 +551,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Artist grid switched from 3 to 2 columns — larger images, more breathing room
+
+---
+
+## [1.4.1] — 2026-05-18 — Light Mode & Restore
+
+### Added
+- **Light mode** — full light theme using Sideforge Anvil palette; follows `prefers-color-scheme` automatically; manually overridable via 🌙/☀️ toggle button in the sidebar header; preference saved to `localStorage`
+- **Last track restore** — the last played track (cover, title, artist, album, progress) is shown on app open after browser restart; pressing Play starts the track from the beginning
+- **Clear track history button** — red 🗑️ History button in the Stats tab clears the entire `artistTrackHistory` immediately, both locally and on the sync server
+
+### Changed
+- **Player buttons** — hover state now shows Ember orange color + glow instead of gray background; applies to all control buttons (repeat, volume, blacklist, notifications, round robin, etc.)
+- **Play/Pause button** — hover shows Ember orange; idle state is neutral (was always orange)
+- **Sidebar** — right edge now has rounded corners (`border-radius: 0 var(--radius-lg) var(--radius-lg) 0`)
+- **Track artist and album name** below cover — switched from `var(--text2)`/`var(--text3)` to `var(--text)`/`var(--text2)` for better contrast in light mode
 
 ---
 
@@ -605,6 +680,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Artist cards no longer shrink with many artists — fixed size with scrollbar
 - Year filters were always active even when empty
+
+---
+
+## [1.4.1] — 2026-05-18 — Light Mode & Restore
+
+### Added
+- **Light mode** — full light theme using Sideforge Anvil palette; follows `prefers-color-scheme` automatically; manually overridable via 🌙/☀️ toggle button in the sidebar header; preference saved to `localStorage`
+- **Last track restore** — the last played track (cover, title, artist, album, progress) is shown on app open after browser restart; pressing Play starts the track from the beginning
+- **Clear track history button** — red 🗑️ History button in the Stats tab clears the entire `artistTrackHistory` immediately, both locally and on the sync server
+
+### Changed
+- **Player buttons** — hover state now shows Ember orange color + glow instead of gray background; applies to all control buttons (repeat, volume, blacklist, notifications, round robin, etc.)
+- **Play/Pause button** — hover shows Ember orange; idle state is neutral (was always orange)
+- **Sidebar** — right edge now has rounded corners (`border-radius: 0 var(--radius-lg) var(--radius-lg) 0`)
+- **Track artist and album name** below cover — switched from `var(--text2)`/`var(--text3)` to `var(--text)`/`var(--text2)` for better contrast in light mode
 
 ---
 

@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════
-   MUSIC SHUFFLE — app.js  v1.4.0
+   MUSIC SHUFFLE — app.js  v1.4.1
    ═══════════════════════════════════════════════════════ */
 'use strict';
 
 // ── VERSION ───────────────────────────────────────────────────────────────────
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const State = {
@@ -37,6 +37,8 @@ const State = {
   smartShuffle: true,
   shuffleLog: [],
   artistTrackHistory: {}, // { artistId: [trackId, trackId, ...] }
+  theme: null, // null = system default, 'light', 'dark'
+  _lastTrack: null, // letzter bekannter Track für Wiederherstellung
   roundRobin: false,      // Round-Robin Modus: je ein Song pro Artist reihum
   _rrQueue: [],           // gemischte Artist-Reihenfolge für aktuellen Durchlauf
   _rrIndex: 0,            // aktueller Index in _rrQueue
@@ -81,6 +83,7 @@ const LS = {
     try { State.stats = { plays:[], shuffles:0, ...JSON.parse(localStorage.getItem('as_stats') || '{}') }; } catch {}
     State.volume          = parseInt(localStorage.getItem('as_volume') || '80', 10);
     try { State.artistTrackHistory = JSON.parse(localStorage.getItem('as_track_history') || '{}'); } catch { State.artistTrackHistory = {}; }
+    try { State._lastTrack = JSON.parse(localStorage.getItem('as_last_track') || 'null'); } catch { State._lastTrack = null; }
     State.activeListId    = localStorage.getItem('as_active_list') || null;
     State.blacklistEnabled = localStorage.getItem('as_blacklist_enabled') !== 'false';
     // Migration
@@ -294,6 +297,7 @@ async function bootApp() {
     SpotifyAPI.loadServerTrackCache();
   }
 
+  initTheme();
   renderLists();
   renderArtistGrid();
   renderAlbumGrid();
@@ -309,6 +313,7 @@ async function bootApp() {
   setupMediaSession();
   if (_deferredPrompt) showInstallBanner();
   updateNotificationBtn();
+
 }
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────────
@@ -358,13 +363,25 @@ function initSDK() {
         console.log('[SDK] Ready, device:', device_id);
         setTimeout(() => loadDevices(), 3000);
         showToast(I18N.t('toast_ready'), 'success');
+        // Letzten Track wiederherstellen — anzeigen aber nicht automatisch starten
+        if (State._lastTrack && !State.currentTrack) {
+          State.currentTrack = State._lastTrack;
+          renderNowPlaying(State._lastTrack);
+          updateMiniPlayer(State._lastTrack);
+          if (State._lastTrack.duration && State._lastTrack.position) {
+            State.position = State._lastTrack.position;
+            State.duration = State._lastTrack.duration;
+            updateProgressUI();
+          }
+          console.log('[App] Restored last track:', State._lastTrack.name);
+        }
       });
       State.player.addListener('not_ready', () => { State.deviceId = null; showToast(I18N.t('toast_offline'), 'error'); });
       State.player.addListener('player_state_changed', onPlayerStateChanged);
       State.player.addListener('initialization_error', ({ message }) => console.error('[SDK] init:', message));
       State.player.addListener('authentication_error', ({ message }) => { console.error('[SDK] auth:', message); showLoginScreen(); });
       State.player.addListener('account_error', () => showToast('Spotify Premium benötigt', 'error'));
-      State.player.addListener('playback_error', ({ message }) => console.error('[SDK] playback:', message));
+      State.player.addListener('playback_error', ({ message }) => { if (!message?.includes('no list was loaded')) console.error('[SDK] playback:', message); });
       State.player.connect();
     });
   };
@@ -400,6 +417,21 @@ function onPlayerStateChanged(state) {
     checkAndAddToHistory(State.currentTrack);
     showTrackNotification(State.currentTrack);
     updateMediaSession(State.currentTrack);
+  }
+  // Letzten Zustand für Wiederherstellung nach Browser-Neustart speichern
+  if (track) {
+    localStorage.setItem('as_last_track', JSON.stringify({
+      id:       track.id,
+      name:     track.name,
+      uri:      track.uri,
+      artist:   track.artists?.[0]?.name || '—',
+      artistId: track.artists?.[0]?.uri?.split(':')[2],
+      album:    track.album?.name || '—',
+      albumId:  track.album?.uri?.split(':')[2] || null,
+      albumArt: track.album?.images?.[0]?.url || '',
+      duration: state.duration,
+      position: state.position,
+    }));
   }
 
   // Auto-next when track ends
@@ -1776,6 +1808,35 @@ function updateLangBtn() {
   if (label) label.textContent = I18N.getLang().toUpperCase();
 }
 
+// ── THEME ──────────────────────────────────────────────────────────────────
+function getEffectiveTheme() {
+  if (State.theme) return State.theme;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('theme-icon');
+  if (icon) icon.textContent = theme === 'light' ? '☀️' : '🌙';
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('as_theme');
+  State.theme = saved || null;
+  applyTheme(getEffectiveTheme());
+  // System-Theme Änderungen beobachten
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+    if (!State.theme) applyTheme(getEffectiveTheme());
+  });
+}
+
+function toggleTheme() {
+  const current = getEffectiveTheme();
+  State.theme = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('as_theme', State.theme);
+  applyTheme(State.theme);
+}
+
 // ── BIND ALL EVENTS ───────────────────────────────────────────────────────────
 function bindAllEvents() {
 
@@ -1939,7 +2000,17 @@ function bindAllEvents() {
   document.getElementById('shuffle-btn').addEventListener('click', doShuffle);
 
   // Play/Pause
-  ['play-pause-btn', 'fs-play'].forEach(id => document.getElementById(id)?.addEventListener('click', () => { State.isPlaying ? State.player?.pause() : State.player?.resume(); }));
+  ['play-pause-btn', 'fs-play'].forEach(id => document.getElementById(id)?.addEventListener('click', async () => {
+    if (State.isPlaying) {
+      State.player?.pause();
+    } else if (State._lastTrack && !State._restoredPlayed && State.currentTrack?.id === State._lastTrack.id) {
+      // Erster Play nach Browser-Neustart — Track von vorne starten
+      State._restoredPlayed = true;
+      await playTrack(State._lastTrack);
+    } else {
+      State.player?.resume();
+    }
+  }));
 
   // Next / Prev
   document.getElementById('next-btn').addEventListener('click', playNextFromQueue);
@@ -2054,6 +2125,15 @@ function bindAllEvents() {
     autoSkipBtn.addEventListener('click', () => { State.autoSkip = !State.autoSkip; autoSkipBtn.classList.toggle('active', State.autoSkip); showToast(State.autoSkip ? I18N.t('toast_autoskip_on') : I18N.t('toast_autoskip_off'), 'info'); });
   }
 
+  document.getElementById('theme-btn')?.addEventListener('click', toggleTheme);
+
+  document.getElementById('clear-track-history-btn')?.addEventListener('click', () => {
+    State.artistTrackHistory = {};
+    localStorage.setItem('as_track_history', '{}');
+    Sync.saveTrackHistory(); // sofort synchen, kein Debounce
+    showToast(I18N.t('toast_track_history_cleared'), 'info');
+  });
+
   const roundRobinBtn = document.getElementById('round-robin-btn');
   if (roundRobinBtn) {
     roundRobinBtn.classList.toggle('active', State.roundRobin);
@@ -2110,6 +2190,37 @@ function bindAllEvents() {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
+  {
+    version: '1.4.1',
+    date: '2026-05-18',
+    label: { de: 'Light Mode & Restore', en: 'Light Mode & Restore' },
+    added: {
+      de: [
+        'Light Mode — vollständiges helles Theme, folgt automatisch dem System (prefers-color-scheme), manuell überschreibbar per 🌙/☀️ Button im Header',
+        'Letzter Track wiederherstellen — beim Öffnen der App wird der zuletzt gespielte Track angezeigt; Play startet ihn von vorne',
+        '🗑️ Track-History leeren — Button im Stats-Tab löscht die gesamte Artist-Track-History sofort lokal und auf dem Server',
+      ],
+      en: [
+        'Light mode — full light theme, follows system preference (prefers-color-scheme) automatically, manually overridable via 🌙/☀️ button in header',
+        'Last track restore — on app open the last played track is shown; pressing Play starts it from the beginning',
+        '🗑️ Clear track history — button in Stats tab clears the entire artist track history immediately, locally and on server',
+      ],
+    },
+    changed: {
+      de: [
+        'Player-Buttons — Hover-Farbe auf Ember Orange geändert (war grau)',
+        'Play/Pause-Button — Hover auf Ember Orange, im Ruhezustand neutral (war immer orange)',
+        'Sidebar — rechte Ecken abgerundet',
+        'Artist-Name und Albumname unter dem Cover — besserer Kontrast im Light Mode',
+      ],
+      en: [
+        'Player buttons — hover color changed to Ember orange (was gray)',
+        'Play/Pause button — hover shows Ember orange, idle state neutral (was always orange)',
+        'Sidebar — right corners rounded',
+        'Artist name and album name below cover — better contrast in light mode',
+      ],
+    },
+  },
   {
     version: '1.4.0',
     date: '2026-05-09',

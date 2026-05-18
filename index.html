@@ -57,6 +57,9 @@
           <button id="changelog-btn" class="btn-icon" title="Changelog / Version" style="font-size:0.7rem;font-weight:700;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;height:auto;width:auto;">
             v<span id="app-version">1.0.0</span>
           </button>
+          <button id="theme-btn" class="btn-icon" title="Light/Dark Mode" style="font-size:1rem;width:auto;padding:0 4px">
+            <span id="theme-icon">🌙</span>
+          </button>
           <button id="lang-btn" class="btn-icon" title="Switch language / Sprache wechseln" style="font-size:0.75rem;font-weight:700;letter-spacing:0.03em;width:auto;padding:0 6px">
             <span id="lang-label">EN</span>
           </button>
@@ -274,11 +277,14 @@
       <div class="sidebar-view" id="view-stats">
         <div class="view-header">
           <h3 data-i18n="stats_title">Statistiken</h3>
-          <select id="stats-range" class="mini-select">
+          <div style="display:flex;gap:6px;align-items:center">
+            <button id="clear-track-history-btn" class="btn-small danger-text" data-i18n="stats_clear_history" title="Track-History löschen — alle Tracks werden wieder freigegeben">🗑️ History</button>
+            <select id="stats-range" class="mini-select">
             <option value="7" data-i18n="stats_range_7">7 Tage</option>
             <option value="30" selected data-i18n="stats_range_30">30 Tage</option>
             <option value="all" data-i18n="stats_range_all">Alles</option>
           </select>
+          </div>
         </div>
         <div id="stats-content" class="stats-content">
           <div class="stats-grid">
