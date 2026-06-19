@@ -88,7 +88,14 @@ const SpotifyAPI = (() => {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: _refreshToken, client_id: _clientId }).toString(),
     });
-    if (!res.ok) { _clearAuth(); throw new Error('Token refresh failed'); }
+    if (!res.ok) {
+      // invalid_grant = Refresh-Token abgelaufen (ab Juli 2026: nach 6 Monaten).
+      // Token verwerfen, KEIN Retry, User muss sich neu einloggen.
+      const err = await res.json().catch(() => ({}));
+      _clearAuth();
+      if (err.error === 'invalid_grant') throw new Error('NOT_AUTHENTICATED');
+      throw new Error('Token refresh failed');
+    }
     _storeTokens(await res.json());
     return _accessToken;
   }

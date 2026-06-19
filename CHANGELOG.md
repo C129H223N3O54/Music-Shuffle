@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] — 2026-06-18 — Token Handling & Fixes
+
+### Changed
+- **Spotify refresh token expiry handling** — starting July 20, 2026, Spotify refresh tokens expire after 6 months. The app now detects the `invalid_grant` error on token refresh, discards the stored token without retrying, and redirects the user to sign in again. No data is lost — lists, stats, blacklist and track history all live on the sync server.
+
+### Fixed
+- **Artist card modal** — clicking an artist card opens the album/track-status modal again; it was blocked by leftover `discoverBtn` references from the Discovery removal in v1.4.0, which threw a JavaScript error on click
+- **Progress bar thumb** — the draggable thumb now follows the playback position correctly instead of sticking to the right edge (CSS `right: 0` conflicted with the JS-set `left` value)
+
+---
+
 ## [1.4.1] — 2026-05-18 — Light Mode & Restore
 
 ### Added
@@ -147,6 +158,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] — 2026-06-18 — Token Handling & Fixes
+
+### Changed
+- **Spotify refresh token expiry handling** — starting July 20, 2026, Spotify refresh tokens expire after 6 months. The app now detects the `invalid_grant` error on token refresh, discards the stored token without retrying, and redirects the user to sign in again. No data is lost — lists, stats, blacklist and track history all live on the sync server.
+
+### Fixed
+- **Artist card modal** — clicking an artist card opens the album/track-status modal again; it was blocked by leftover `discoverBtn` references from the Discovery removal in v1.4.0, which threw a JavaScript error on click
+- **Progress bar thumb** — the draggable thumb now follows the playback position correctly instead of sticking to the right edge (CSS `right: 0` conflicted with the JS-set `left` value)
+
+---
+
 ## [1.4.1] — 2026-05-18 — Light Mode & Restore
 
 ### Added
@@ -276,6 +298,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Each artist and album has equal chance of being picked (1 entry each in pool)
 - Artists with more albums naturally provide more variety when selected
 - Smart Shuffle still applies — artists not played recently get higher weight
+
+---
+
+## [1.4.2] — 2026-06-18 — Token Handling & Fixes
+
+### Changed
+- **Spotify refresh token expiry handling** — starting July 20, 2026, Spotify refresh tokens expire after 6 months. The app now detects the `invalid_grant` error on token refresh, discards the stored token without retrying, and redirects the user to sign in again. No data is lost — lists, stats, blacklist and track history all live on the sync server.
+
+### Fixed
+- **Artist card modal** — clicking an artist card opens the album/track-status modal again; it was blocked by leftover `discoverBtn` references from the Discovery removal in v1.4.0, which threw a JavaScript error on click
+- **Progress bar thumb** — the draggable thumb now follows the playback position correctly instead of sticking to the right edge (CSS `right: 0` conflicted with the JS-set `left` value)
 
 ---
 
@@ -427,6 +460,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] — 2026-06-18 — Token Handling & Fixes
+
+### Changed
+- **Spotify refresh token expiry handling** — starting July 20, 2026, Spotify refresh tokens expire after 6 months. The app now detects the `invalid_grant` error on token refresh, discards the stored token without retrying, and redirects the user to sign in again. No data is lost — lists, stats, blacklist and track history all live on the sync server.
+
+### Fixed
+- **Artist card modal** — clicking an artist card opens the album/track-status modal again; it was blocked by leftover `discoverBtn` references from the Discovery removal in v1.4.0, which threw a JavaScript error on click
+- **Progress bar thumb** — the draggable thumb now follows the playback position correctly instead of sticking to the right edge (CSS `right: 0` conflicted with the JS-set `left` value)
+
+---
+
 ## [1.4.1] — 2026-05-18 — Light Mode & Restore
 
 ### Added
@@ -551,6 +595,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Artist grid switched from 3 to 2 columns — larger images, more breathing room
+
+---
+
+## [1.4.2] — 2026-06-18 — Token Handling & Fixes
+
+### Changed
+- **Spotify refresh token expiry handling** — starting July 20, 2026, Spotify refresh tokens expire after 6 months. The app now detects the `invalid_grant` error on token refresh, discards the stored token without retrying, and redirects the user to sign in again. No data is lost — lists, stats, blacklist and track history all live on the sync server.
+
+### Fixed
+- **Artist card modal** — clicking an artist card opens the album/track-status modal again; it was blocked by leftover `discoverBtn` references from the Discovery removal in v1.4.0, which threw a JavaScript error on click
+- **Progress bar thumb** — the draggable thumb now follows the playback position correctly instead of sticking to the right edge (CSS `right: 0` conflicted with the JS-set `left` value)
 
 ---
 
@@ -680,6 +735,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Artist cards no longer shrink with many artists — fixed size with scrollbar
 - Year filters were always active even when empty
+
+---
+
+## [1.4.2] — 2026-06-18 — Token Handling & Fixes
+
+### Changed
+- **Spotify refresh token expiry handling** — starting July 20, 2026, Spotify refresh tokens expire after 6 months. The app now detects the `invalid_grant` error on token refresh, discards the stored token without retrying, and redirects the user to sign in again. No data is lost — lists, stats, blacklist and track history all live on the sync server.
+
+### Fixed
+- **Artist card modal** — clicking an artist card opens the album/track-status modal again; it was blocked by leftover `discoverBtn` references from the Discovery removal in v1.4.0, which threw a JavaScript error on click
+- **Progress bar thumb** — the draggable thumb now follows the playback position correctly instead of sticking to the right edge (CSS `right: 0` conflicted with the JS-set `left` value)
 
 ---
 

@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════
-   MUSIC SHUFFLE — app.js  v1.4.1
+   MUSIC SHUFFLE — app.js  v1.4.2
    ═══════════════════════════════════════════════════════ */
 'use strict';
 
 // ── VERSION ───────────────────────────────────────────────────────────────────
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.2';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const State = {
@@ -510,7 +510,7 @@ async function loadDevices() {
 
 setInterval(() => { if (SpotifyAPI.isLoggedIn()) loadDevices(); }, 120000);
 
-// Poll player state every 15s
+// Poll player state every 15s — local SDK
 setInterval(async () => {
   if (!State.player || !State.isPlaying) return;
   try { const s = await State.player.getCurrentState(); if (s) { State.position = s.position; State.duration = s.duration; } } catch {}
@@ -1959,7 +1959,8 @@ function bindAllEvents() {
     const card = e.target.closest('.artist-card');
     if (!card) return;
     const removeBtn   = e.target.closest('.artist-card-remove');
-    if (discoverBtn) { showDiscovery(discoverBtn.dataset.id, discoverBtn.dataset.name); return; }
+    const favoriteBtn = e.target.closest('.artist-card-favorite');
+    if (removeBtn)   { removeArtistFromActiveList(removeBtn.dataset.id); return; }
     if (favoriteBtn) { toggleArtistFavorite(favoriteBtn.dataset.id); return; }
     const artist = getActiveList()?.artists?.find(a => a.id === card.dataset.artistId);
     if (artist) showAlbumBrowser(artist.id, artist.name);
@@ -2190,6 +2191,29 @@ function bindAllEvents() {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
+  {
+    version: '1.4.2',
+    date: '2026-06-18',
+    label: { de: 'Token-Handling & Fixes', en: 'Token Handling & Fixes' },
+    changed: {
+      de: [
+        'Spotify Refresh-Token-Ablauf vorbereitet — ab 20. Juli 2026 laufen Refresh-Tokens nach 6 Monaten ab; bei abgelaufenem Token (invalid_grant) wird automatisch zum Login weitergeleitet, keine Datenverluste (Listen/Stats/Blacklist/History liegen auf dem Sync-Server)',
+      ],
+      en: [
+        'Prepared for Spotify refresh token expiry — starting July 20, 2026 refresh tokens expire after 6 months; on expired token (invalid_grant) the app redirects to login automatically, no data loss (lists/stats/blacklist/history live on the sync server)',
+      ],
+    },
+    fixed: {
+      de: [
+        'Künstler-Kachel öffnet wieder das Album-/Track-Status-Fenster (durch versehentlichen Code-Rest beim Discovery-Entfernen blockiert)',
+        'Fortschrittsbalken — Punkt (Thumb) folgt jetzt korrekt der Wiedergabeposition statt am rechten Rand zu kleben',
+      ],
+      en: [
+        'Artist card opens the album/track-status modal again (was blocked by leftover code from Discovery removal)',
+        'Progress bar — the thumb now follows the playback position correctly instead of sticking to the right edge',
+      ],
+    },
+  },
   {
     version: '1.4.1',
     date: '2026-05-18',
