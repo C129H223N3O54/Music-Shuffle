@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
-  <rect width="28" height="28" rx="6" fill="#1A1A1A"/>
-  <text x="3" y="21" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="700" font-size="17" letter-spacing="-1">
-    <tspan fill="#E8600A">S</tspan><tspan fill="#F5F5F5">F</tspan>
-  </text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+  <title>Music Shuffle</title>
+  <!-- Zufalls-Equalizer, Kleinformat für den Browser-Tab: 4 Balken auf Pixelraster, der „gezogene" hell.
+       Die großen App-Icons (icons/) nutzen die 5-Balken-Version. -->
+  <rect width="32" height="32" rx="7" fill="#1A1A1A" shape-rendering="geometricPrecision"/>
+  <rect x="5"  y="16" width="4" height="10" fill="#E8600A"/>
+  <rect x="11" y="10" width="4" height="16" fill="#E8600A"/>
+  <rect x="17" y="6"  width="4" height="20" fill="#F5F5F5"/>
+  <rect x="23" y="18" width="4" height="8"  fill="#E8600A"/>
 </svg>

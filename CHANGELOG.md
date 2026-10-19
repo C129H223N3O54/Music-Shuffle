@@ -7,6 +7,112 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.3] — 2026-10-19 — New Logo
+
+### Changed
+- **New app logo "random equalizer"** — five bars of random height in Ember orange; the tallest one, the "picked" track, is off-white. Replaces the Sideforge "SF" monogram as app icon (the Sideforge logo next to the version stays).
+- `favicon.svg` is a pixel-aligned 4-bar small version (32 px grid) so the browser tab stays sharp; `favicon.ico` contains a hand-tuned 16 px variant plus 32/48/256 px.
+- App icons (`icons/icon-96/128/192/512.png`), maskable Android icons and `apple-touch-icon.png` regenerated with the 5-bar logo.
+- Login page shows the new logo instead of the old teal vinyl/dice artwork from the Artist Shuffle days.
+
+### Repository
+- Sync server lives only in `sync-server/` now (`sync-server.js`, `Dockerfile` on `node:22-alpine`, `SYNC-SERVER.md`); the duplicate root `sync-server.js` and the outdated `node:18` Dockerfile are gone.
+- `tests/` folder, `js/` modules, `favicon.ico` and the new icons added to the repo; `CLAUDE.md` with structure, test and release checklist.
+
+---
+
+## [1.6.2] — 2026-10-19 — New Icons
+
+### Changed
+- **All icons regenerated from the Sideforge "SF" logo** (`favicon.svg`): `favicon.ico` (16/32/48/256 px) and `icons/icon-96/128/192/512.png`. Previously `favicon.ico` and the PNG icons still showed the old Music Shuffle artwork.
+- **Maskable icons** — new `icon-192-maskable.png` / `icon-512-maskable.png` (full-bleed, logo inside the 70 % safe zone) so Android's circle/squircle mask doesn't cut off the logo. The regular icons are now `purpose: "any"`.
+- **iPhone home screen** — new full-bleed `icons/apple-touch-icon.png` (180 px); iOS rounds the corners itself.
+- `manifest.json` background colour matches the icon (`#1A1A1A`).
+
+---
+
+## [1.6.1] — 2026-10-19 — Tidied Up & Translated
+
+### Changed
+- **app.js split into modules** — the former 2,900-line `app.js` is now `app.js` (boot, login, event wiring, ~500 lines) plus `js/core.js`, `js/sync.js`, `js/player.js`, `js/shuffle.js`, `js/lists.js`, `js/ui.js` and `js/changelog.js`. Still plain scripts without a build step; load order is defined in `index.html`. Service worker and `Dockerfile` include the new `js/` folder.
+- **Everything translated** — ~45 hard-coded German messages, tooltips and loading hints moved to `i18n.js` (DE/EN). `I18N.t()` now supports placeholders: `I18N.t('msg_list_created', { name })`.
+- **Tooltips translated** — new `data-i18n-title` attribute for button tooltips in `index.html` (24 tooltips).
+- **Language switch** re-renders all dynamic areas via the `langchange` event (previously only via the language button).
+- Changelog section labels come from `i18n.js`.
+
+### Fixed
+- Album grid kept stale (hidden) cards after switching to a list without albums.
+
+### Tests
+- `L16` checks that every translation key used in the app exists in German **and** English; `U21` checks the English UI for leftover German text or raw keys.
+
+---
+
+## [1.6.0] — 2026-10-19 — Security & Auto-Reconnect
+
+Security review from an attacker's point of view, maintainability clean-up, all findings covered by tests (15 logic, 11 sync server, 21 UI).
+
+### Added
+- **Automatic player reconnect** — when the browser freezes the tab (back/forward cache, energy saving), the Web Playback SDK loses its connection and Spotify drops the device. The app still held the old device ID, so the next track failed with `HTTP 404 Not found`. Now a 404 on our own device, a `pageshow` from the back/forward cache or a lasting `not_ready` reconnects the player, switches to the new device ID and retries the track.
+- **Sync server login** — new env var `ALLOWED_USERS` (Spotify user IDs). The app sends its Spotify access token (`Authorization: Bearer …`); the server verifies it via `GET /v1/me` (cached 10 min, invalid tokens 1 min, max. 30 checks/min) and only lets allowed users in. Without `ALLOWED_USERS` the server stays open as before and logs a warning.
+- **`ALLOWED_ORIGINS`** — CORS only for your own app URL (default `*` with warning).
+- **Content Security Policy** (meta tag): scripts only from the app and `sdk.scdn.co`, no inline scripts, no plugins, `base-uri`/`form-action` locked. Plus referrer policy and a frame-buster against clickjacking.
+
+### Changed
+- **"Artist repeat after N tracks"** — the per-list setting existed in the UI but had no effect. It now keeps artists of the last N tracks (queue + history) out of the selection as long as other artists are available.
+- **Shared selection logic** — shuffle button and queue used two copies of the pick logic (which is how Round Robin vs. Smart Shuffle drifted apart in 1.5.1). Now `chooseSource()` + `fetchTrackFor()` serve both.
+- **Data validation** — lists from localStorage, the sync server and imported files go through `normalizeList()` (known fields only, Spotify IDs checked, lengths limited). Stats, blacklist and track history from the server are type-checked.
+- **All sync requests** go through `SpotifyAPI.syncFetch()` (auth header, timeout, error handling in one place).
+- **API errors** carry the HTTP status (`err.status`) instead of only a message string.
+- **Sync server** — security headers (`nosniff`, `no-store`, `no-referrer`), Spotify IDs validated for cache/history keys (no `__proto__` or path tricks), invalid history entries are filtered. Public health only returns `status`, `version`, `auth`; counts need a login.
+- **Docker** (`docker/sync-server.Dockerfile`, `docker-compose.yml`) — runs as user `node`, port bound to `127.0.0.1`, auth variables prepared.
+
+### Fixed
+- **Stored XSS** — image URLs and IDs from list data were inserted into HTML unescaped (`src="${img}"`, `data-id="${id}"`). Anyone able to write to the (previously unauthenticated) sync server could have run code in the app and read the Spotify refresh token. Now: URL allowlist (`https:`/same origin), escaping, inline `onerror` handlers replaced by one global listener, plus CSP.
+- **Sync server crash (DoS)** — a single request with a malformed URL (e.g. `GET http://[`) threw outside the error handler and terminated the Node process.
+- **Spotify IDs in API URLs** — IDs from list data are validated before being put into request paths.
+- **List import** — imported lists with an existing ID silently replaced the existing list on the next sync; they now get a new ID.
+- **Export** — object URL was revoked before the download could start in some browsers.
+- `mobile-web-app-capable` meta tag added (console deprecation warning).
+
+---
+
+## [1.5.2] — 2026-10-10 — Code Review & Fairness
+
+Full code review with automated tests (all findings fixed and re-tested).
+
+### Added
+- **"No commentary tracks" filter** — per-list filter that hides commentary tracks such as "The Nexus - Commentary" and whole commentary albums such as "The Nexus (Commentary)". Checks both track and album name.
+- **Automated tests** (`tests/`) — `logic.test.js` (spotify-api.js in a Node VM with a mocked Spotify), `sync-server.test.js` (real server in a temp folder) and `ui.test.js` (whole app in headless Chromium with a fake Web Playback SDK). Run with `cd tests && npm install && npm test`. Not needed on the web server.
+- **Health check** now also reports `trackHistory`, `albumCache`, `trackCache` and `version`.
+
+### Changed
+- **Song detection** — the same song released as a single *and* on an album (different Spotify IDs) now counts as one song: it no longer comes up twice as often, the album version is preferred, and the lock covers all versions.
+- **Track selection with a cold cache** — instead of loading up to 25 albums (~29 requests ≈ 29 s) for one shuffle, albums are sampled weighted by track count and usually only 1–2 are loaded. Rejection sampling keeps every unplayed song equally likely.
+- **Track status** — uses the cached/throttled API, the active list's filters and the same song detection as the shuffle (was: up to 20 uncached requests with `market=from_token`, filters ignored).
+- **Service worker** — app shell (HTML/JS/CSS/JSON) is now network-first with offline fallback. After an update the new version loads automatically; clearing the service worker cache by hand is no longer necessary.
+- **Sync server** — album/track cache kept in memory, expired entries (>24 h) pruned, tracks slimmed to the fields the app uses, cache files written compact; all files written atomically (temp file + rename). Empty album lists are rejected.
+- **Client cache** — album and track objects are slimmed before caching (no `available_markets`, `href`, `external_urls` …).
+- **Playlist from history** — uses `POST /me/playlists` and `POST /playlists/{id}/items` (the old endpoints were removed in Feb 2026). New OAuth scopes `playlist-modify-private`/`playlist-modify-public` → **log out and in once**.
+- **Changelog dialog** renders "Removed" sections.
+
+### Fixed
+- **Immediate repeat lock** — the lock for shuffled/pre-queued tracks read `track.artistId`, which never existed, so it never applied. Tracks now carry `artistId` and `variantIds`.
+- **Remove artist (✕)** — called a non-existent function (`removeArtistFromActiveList`) and threw a `ReferenceError`.
+- **Failed album fetch cached** — a 403/429 while loading an artist's albums was cached as an empty list for 24 h and pushed to the sync server, making the artist "empty" on all devices.
+- **Concurrent token refresh** — two parallel refreshes sent the same (rotated) refresh token; the second got `invalid_grant` and logged the user out. Refreshes are now shared.
+- **Album blacklist** — was saved with `LS.save()` and never sent to `/api/blacklist`; also fetched with `market=from_token` past the cache.
+- **Live filter** — matched "live" inside words (Deliverance, Alive, Olive …) and " live" in titles like "Born to Live Free". Now uses word boundaries.
+- **Round Robin + Smart Shuffle** — the shuffle button ignored the Round Robin pick when Smart Shuffle was on.
+- **Keyboard shortcuts** — ignored modifier keys, so Ctrl+F/Ctrl+P/Ctrl+N triggered app actions; also inactive on the login screen now.
+- **Login after failed callback** — the login button was not wired up when the OAuth callback failed.
+- **Logout** — the silent media-key audio anchor kept playing after logout.
+- **Album window tabs** — showed the raw i18n keys `tab_albums`/`tab_track_status`.
+- **Artist placeholder image** — the inline `onerror` handler contained unescaped quotes (SyntaxError on every card without image).
+- **Sync server** — `POST /api/track-history` accepted `history: null`; the request body is now size-limited.
+
+---
+
 ## [1.5.1] — 2026-08-19 — Shuffle Fairness & Genre Back
 
 ### Added

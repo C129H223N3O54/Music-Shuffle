@@ -3,16 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Sicherheit (v1.6.0): Skripte nur von hier und vom Spotify-SDK, keine Inline-Skripte,
+       keine Plugins. Falls etwas blockiert wird, steht es als „Content-Security-Policy" in der Konsole. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://sdk.scdn.co; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' blob: https:; connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:*; frame-src https:; worker-src 'self'; manifest-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Music Shuffle</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1DB954" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Music Shuffle" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <!-- Sideforge v1.0.1: Verdana system font — no webfont download needed -->
   <link rel="stylesheet" href="sideforge-tokens.css">
 </head>
@@ -26,7 +31,7 @@
   <div id="login-screen" class="screen login-screen">
     <div class="login-card">
       <div class="login-logo">
-        <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="20" fill="#141420"/><circle cx="20" cy="20" r="14" fill="none" stroke="#2a2a3a" stroke-width="2"/><circle cx="20" cy="20" r="10" fill="none" stroke="#222232" stroke-width="1.5"/><circle cx="20" cy="20" r="6.5" fill="#00C8B4"/><circle cx="20" cy="20" r="2" fill="#141420"/><rect x="26" y="5" width="11" height="11" rx="2" fill="#f0f0f5" stroke="#00C8B4" stroke-width="1"/><circle cx="28.5" cy="7.5" r="1.3" fill="#1a1a28"/><circle cx="34.5" cy="7.5" r="1.3" fill="#1a1a28"/><circle cx="28.5" cy="12.5" r="1.3" fill="#1a1a28"/><circle cx="34.5" cy="12.5" r="1.3" fill="#1a1a28"/></svg>
+        <svg viewBox="0 0 32 32" role="img" aria-label="Music Shuffle"><rect width="32" height="32" rx="7" fill="#1A1A1A"/><rect x="5" y="16" width="4" height="10" rx="2" fill="#E8600A"/><rect x="11" y="10" width="4" height="16" rx="2" fill="#E8600A"/><rect x="17" y="6" width="4" height="20" rx="2" fill="#F5F5F5"/><rect x="23" y="18" width="4" height="8" rx="2" fill="#E8600A"/></svg>
         <span>Music Shuffle</span>
       </div>
       <h1 data-i18n="login_title">Deine Musik.<br/>Dein Shuffle.</h1>
@@ -54,24 +59,24 @@
       <div class="sidebar-header">
         <div class="user-info" id="user-info">
           <span class="sf-logo sf-logo-sm" title="Sideforge"></span>
-          <button id="changelog-btn" class="btn-icon" title="Changelog / Version" style="font-size:0.7rem;font-weight:700;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;height:auto;width:auto;">
+          <button id="changelog-btn" class="btn-icon" title="Changelog / Version" data-i18n-title="tip_changelog" style="font-size:0.7rem;font-weight:700;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;height:auto;width:auto;">
             v<span id="app-version">1.0.0</span>
           </button>
-          <button id="theme-btn" class="btn-icon" title="Light/Dark Mode" style="font-size:1rem;width:auto;padding:0 4px">
+          <button id="theme-btn" class="btn-icon" title="Light/Dark Mode" data-i18n-title="tip_theme" style="font-size:1rem;width:auto;padding:0 4px">
             <span id="theme-icon">🌙</span>
           </button>
           <button id="lang-btn" class="btn-icon" title="Switch language / Sprache wechseln" style="font-size:0.75rem;font-weight:700;letter-spacing:0.03em;width:auto;padding:0 6px">
             <span id="lang-label">EN</span>
           </button>
-          <button id="sync-indicator" class="btn-icon" title="Sync" style="color:var(--text3)">
+          <button id="sync-indicator" class="btn-icon" title="Sync" data-i18n-title="tip_sync" style="color:var(--text3)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
           </button>
-          <button id="sync-btn" class="btn-icon" title="Listen synchronisieren">
+          <button id="sync-btn" class="btn-icon" title="Listen synchronisieren" data-i18n-title="tip_sync_lists">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
           </button>
           <img id="user-avatar" src="" alt="" class="user-avatar hidden" />
           <span id="user-name" class="user-name"></span>
-          <button id="logout-btn" class="btn-icon" title="Abmelden">
+          <button id="logout-btn" class="btn-icon" title="Abmelden" data-i18n-title="tip_logout">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           </button>
         </div>
@@ -112,10 +117,10 @@
             <span id="list-name-text">—</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <button id="new-list-btn" class="btn-icon btn-accent btn-touch" title="Neue Liste">
+          <button id="new-list-btn" class="btn-icon btn-accent btn-touch" title="Neue Liste" data-i18n-title="tip_new_list">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
-          <button id="list-options-btn" class="btn-icon btn-touch" title="Optionen">
+          <button id="list-options-btn" class="btn-icon btn-touch" title="Optionen" data-i18n-title="tip_options">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
           </button>
           <!-- Kompaktes Dropdown direkt unter dem Listennamen -->
@@ -198,6 +203,10 @@
               <input type="checkbox" id="filter-no-orchestral" />
               <span data-i18n="filter_no_orchestral">🎻 Keine Orchestral-Versionen</span>
             </label>
+            <label class="filter-row checkbox-row">
+              <input type="checkbox" id="filter-no-commentary" />
+              <span data-i18n="filter_no_commentary">🎙️ Keine Kommentar-Tracks</span>
+            </label>
             <div class="filter-row" style="display:flex;align-items:center;gap:8px">
               <span data-i18n="filter_artist_repeat_limit" style="font-size:0.8rem;color:var(--text2)">🔁 Artist-Wiederholung nach</span>
               <input type="number" id="filter-artist-repeat-limit" min="1" max="50" value="3" style="width:52px;padding:4px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.8rem;text-align:center" />
@@ -274,8 +283,8 @@
         <div class="view-header">
           <h3 data-i18n="history_title">Verlauf</h3>
           <div style="display:flex;gap:6px;align-items:center">
-            <button id="only-new-btn" class="btn-small" title="Nur Songs die noch nicht gespielt wurden" data-i18n="history_only_new">🆕 Nur neue</button>
-            <button id="create-playlist-btn" class="btn-small" title="Als Spotify-Playlist speichern" data-i18n="history_playlist">🎵 Playlist</button>
+            <button id="only-new-btn" class="btn-small" title="Nur Songs die noch nicht gespielt wurden" data-i18n-title="tip_only_new" data-i18n="history_only_new">🆕 Nur neue</button>
+            <button id="create-playlist-btn" class="btn-small" title="Als Spotify-Playlist speichern" data-i18n-title="tip_save_playlist" data-i18n="history_playlist">🎵 Playlist</button>
             <button id="clear-history-btn" class="btn-small danger-text" data-i18n="history_clear">Leeren</button>
           </div>
         </div>
@@ -290,7 +299,7 @@
         <div class="view-header">
           <h3 data-i18n="stats_title">Statistiken</h3>
           <div style="display:flex;gap:6px;align-items:center">
-            <button id="clear-track-history-btn" class="btn-small danger-text" data-i18n="stats_clear_history" title="Track-History löschen — alle Tracks werden wieder freigegeben">🗑️ History</button>
+            <button id="clear-track-history-btn" class="btn-small danger-text" data-i18n="stats_clear_history" title="Track-History löschen — alle Tracks werden wieder freigegeben" data-i18n-title="tip_clear_track_history">🗑️ History</button>
             <select id="stats-range" class="mini-select">
             <option value="7" data-i18n="stats_range_7">7 Tage</option>
             <option value="30" selected data-i18n="stats_range_30">30 Tage</option>
@@ -328,7 +337,7 @@
         <div class="view-header">
           <h3 data-i18n="log_title">Shuffle-Log</h3>
           <div style="display:flex;gap:6px;align-items:center">
-            <label class="toggle-label" title="Smart Shuffle — Artists die lange nicht gespielt wurden kommen öfter dran">
+            <label class="toggle-label" title="Smart Shuffle — Artists die lange nicht gespielt wurden kommen öfter dran" data-i18n-title="tip_smart_shuffle">
               <input type="checkbox" id="smart-shuffle-toggle" checked />
               <span class="toggle-switch"></span>
               Smart
@@ -371,7 +380,7 @@
         <select id="device-select" class="device-select">
           <option value="">Kein Gerät aktiv</option>
         </select>
-        <button id="refresh-devices-btn" class="btn-icon" title="Geräte aktualisieren">
+        <button id="refresh-devices-btn" class="btn-icon" title="Geräte aktualisieren" data-i18n-title="tip_refresh_devices">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
         </button>
       </div>
@@ -434,49 +443,49 @@
 
           <!-- Main controls -->
           <div class="controls-main">
-            <button id="prev-btn" class="btn-icon btn-ctrl" title="Zurück (P)">
+            <button id="prev-btn" class="btn-icon btn-ctrl" title="Zurück (P)" data-i18n-title="tip_prev">
               <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M19 20L9 12l10-8v16zM5 4h2v16H5z"/></svg>
             </button>
-            <button id="play-pause-btn" class="btn-play" title="Play/Pause (Space)" aria-label="Play/Pause">
+            <button id="play-pause-btn" class="btn-play" title="Play/Pause (Space)" data-i18n-title="tip_play_pause" aria-label="Play/Pause">
               <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M8 5v14l11-7z"/></svg>
               <svg id="pause-icon" viewBox="0 0 24 24" fill="currentColor" width="28" height="28" class="hidden"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
             </button>
-            <button id="next-btn" class="btn-icon btn-ctrl" title="Nächster (N)">
+            <button id="next-btn" class="btn-icon btn-ctrl" title="Nächster (N)" data-i18n-title="tip_next">
               <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M5 4l10 8-10 8V4zm14 0h-2v16h2z"/></svg>
             </button>
           </div>
 
           <!-- Secondary controls -->
           <div class="controls-secondary">
-            <button id="repeat-btn" class="btn-icon btn-ctrl-sm" title="Wiederholen">
+            <button id="repeat-btn" class="btn-icon btn-ctrl-sm" title="Wiederholen" data-i18n-title="tip_repeat">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
             </button>
             <div class="volume-group">
-              <button id="mute-btn" class="btn-icon btn-ctrl-sm" title="Mute (M)">
+              <button id="mute-btn" class="btn-icon btn-ctrl-sm" title="Mute (M)" data-i18n-title="tip_mute">
                 <svg id="vol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/></svg>
                 <svg id="mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" class="hidden"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
               </button>
               <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="80" />
             </div>
-            <button id="blacklist-btn" class="btn-icon btn-ctrl-sm" title="Blacklist (B)">
+            <button id="blacklist-btn" class="btn-icon btn-ctrl-sm" title="Blacklist (B)" data-i18n-title="tip_blacklist">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
             </button>
-            <button id="blacklist-album-btn" class="btn-icon btn-ctrl-sm" title="Ganzes Album blacklisten">
+            <button id="blacklist-album-btn" class="btn-icon btn-ctrl-sm" title="Ganzes Album blacklisten" data-i18n-title="tip_blacklist_album">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><circle cx="12" cy="12" r="4"/></svg>
             </button>
-            <button id="notification-btn" class="btn-icon btn-ctrl-sm" title="Benachrichtigungen aktivieren">
+            <button id="notification-btn" class="btn-icon btn-ctrl-sm" title="Benachrichtigungen aktivieren" data-i18n-title="tip_notifications">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
             </button>
-            <button id="crossfade-btn" class="btn-icon btn-ctrl-sm" title="Crossfade">
+            <button id="crossfade-btn" class="btn-icon btn-ctrl-sm" title="Crossfade" data-i18n-title="tip_crossfade">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l5.1 5.1M4 4l5 5"/></svg>
             </button>
-            <button id="autoskip-btn" class="btn-icon btn-ctrl-sm" title="Auto-Skip kurze Tracks">
+            <button id="autoskip-btn" class="btn-icon btn-ctrl-sm" title="Auto-Skip kurze Tracks" data-i18n-title="tip_autoskip">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
             </button>
-            <button id="round-robin-btn" class="btn-icon btn-ctrl-sm" title="Round Robin — je ein Song pro Artist">
+            <button id="round-robin-btn" class="btn-icon btn-ctrl-sm" title="Round Robin — je ein Song pro Artist" data-i18n-title="tip_round_robin">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/><text x="9" y="14" font-size="7" fill="currentColor" stroke="none" font-weight="bold">1</text></svg>
             </button>
-            <button id="fullscreen-btn" class="btn-icon btn-ctrl-sm" title="Fullscreen (F)">
+            <button id="fullscreen-btn" class="btn-icon btn-ctrl-sm" title="Fullscreen (F)" data-i18n-title="tip_fullscreen">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
             </button>
           </div>
@@ -626,8 +635,16 @@
   <!-- Spotify SDK -->
   <script src="i18n.js"></script>
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
-  <script src="config.js" onerror="window.configMissing=true"></script>
+  <script src="config.js"></script>
   <script src="spotify-api.js"></script>
+  <!-- App-Module (Reihenfolge wichtig: core zuerst, app.js startet alles) -->
+  <script src="js/core.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/shuffle.js"></script>
+  <script src="js/lists.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/changelog.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

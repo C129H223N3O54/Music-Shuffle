@@ -10,6 +10,8 @@ const SpotifyAPI = (() => {
   const SCOPES = [
     'user-read-playback-state', 'user-modify-playback-state',
     'streaming', 'user-read-email', 'user-read-private',
+    // Für „Playlist aus Verlauf" (v1.5.2) — bestehende Logins brauchen einmal Ab-/Anmelden
+    'playlist-modify-private', 'playlist-modify-public',
   ].join(' ');
 
   const BASE        = 'https://api.spotify.com/v1';
@@ -83,7 +85,18 @@ const SpotifyAPI = (() => {
     return true;
   }
 
-  async function _refreshAccessToken() {
+  // Laufenden Refresh teilen: Spotify rotiert den Refresh-Token. Zwei parallele
+  // Refreshes (z.B. SDK getOAuthToken + App-Request) → der zweite schickt den
+  // bereits verbrauchten Token → invalid_grant → ungewollter Logout.
+  let _refreshPromise = null;
+  function _refreshAccessToken() {
+    if (!_refreshPromise) {
+      _refreshPromise = _doRefresh().finally(() => { _refreshPromise = null; });
+    }
+    return _refreshPromise;
+  }
+
+  async function _doRefresh() {
     if (!_refreshToken) throw new Error('No refresh token');
     const res = await fetch(TOKEN_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -128,6 +141,21 @@ const SpotifyAPI = (() => {
     _lastRequest = Date.now();
   }
 
+  // Fehler mit HTTP-Status, damit die App gezielt reagieren kann (z.B. 404 = Gerät weg)
+  function _httpError(status, message) {
+    const e = new Error(message);
+    e.status = status;
+    return e;
+  }
+
+  // Spotify-IDs sind base62. Alles andere (z.B. manipulierte Listen-Daten) wird
+  // abgelehnt, bevor es in einer API-URL landet.
+  const RE_SPOTIFY_ID = /^[A-Za-z0-9]{1,64}$/;
+  function _sid(id) {
+    if (typeof id !== 'string' || !RE_SPOTIFY_ID.test(id)) throw _httpError(400, 'Ungültige Spotify-ID');
+    return id;
+  }
+
   async function _fetch(endpoint, options = {}, retryCount = 0) {
     await _throttle();
     const token = await getToken();
@@ -147,66 +175,102 @@ const SpotifyAPI = (() => {
       console.warn(`[API] Rate limited, waiting ${wait}s… (attempt ${retryCount + 1}/3)`);
       await _sleep(wait * 1000);
       if (retryCount < 3) return _fetch(endpoint, options, retryCount + 1);
-      throw new Error('Rate limit exceeded — bitte später versuchen');
+      throw _httpError(429, 'Rate limit exceeded — bitte später versuchen');
     }
     if (res.status === 403) {
       const d = await res.json().catch(()=>({}));
-      if (d.error?.reason === 'PREMIUM_REQUIRED') throw new Error('PREMIUM_REQUIRED');
-      throw new Error(`Forbidden: ${d.error?.message||res.status}`);
+      if (d.error?.reason === 'PREMIUM_REQUIRED') throw _httpError(403, 'PREMIUM_REQUIRED');
+      throw _httpError(403, `Forbidden: ${d.error?.message||res.status}`);
     }
     if (res.status === 204 || res.status === 202) return null;
-    if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(`HTTP ${res.status}: ${JSON.stringify(d)}`); }
+    if (!res.ok) { const d = await res.json().catch(()=>({})); throw _httpError(res.status, `HTTP ${res.status}: ${JSON.stringify(d)}`); }
     return res.json();
   }
 
-  // ── ALBUM CACHE ───────────────────────────────────────
-  // Server-Cache URL — wird von app.js gesetzt
+  // ── SYNC-SERVER ───────────────────────────────────────
+  // Alle Requests zum Sync-Server laufen hierüber. Seit v1.6.0 schickt die App
+  // ihr Spotify-Access-Token mit; der Server prüft damit, wer anfragt
+  // (ALLOWED_USERS). Ohne Login → keine Sync-Requests.
   let _serverCacheUrl = null;
-  function setServerCacheUrl(url) { _serverCacheUrl = url; }
+  function setServerCacheUrl(url) { _serverCacheUrl = url ? String(url).replace(/\/+$/, '') : null; }
 
-  // Kompletten Cache vom Server laden (einmalig beim Start)
-  async function loadServerCache() {
-    if (!_serverCacheUrl) return false;
+  async function syncFetch(path, { method = 'GET', body, timeout = 3000, baseUrl } = {}) {
+    const base = baseUrl || _serverCacheUrl;
+    if (!base) return null;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
     try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`${_serverCacheUrl}/api/cache`, { signal: controller.signal });
-      if (!res.ok) return false;
-      const data = await res.json();
-      if (!data?.cache) return false;
-      let count = 0;
-      for (const [artistId, entry] of Object.entries(data.cache)) {
-        // Nur laden wenn noch frisch (max 24h alt)
-        if (entry.ts && Date.now() - entry.ts < CACHE_TTL) {
-          _albumCache.set(artistId, entry);
-          count++;
-        }
+      const token = await getToken().catch(() => null);
+      const headers = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (body !== undefined) headers['Content-Type'] = 'application/json';
+      const res = await fetch(`${base}${path}`, {
+        method, headers, signal: controller.signal,
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      if (res.status === 401 || res.status === 403) {
+        console.warn(`[Sync] ${method} ${path} → ${res.status} (nicht berechtigt — ALLOWED_USERS am Sync-Server prüfen)`);
+        return null;
       }
-      console.log(`[Cache] Loaded ${count} artists from server`);
-      return count > 0;
-    } catch { return false; }
+      return res.ok ? await res.json() : null;
+    } catch { return null; }
+    finally { clearTimeout(timer); }
   }
 
-  // Cache-Eintrag zum Server hochladen (nach Spotify-Abruf)
-  async function _pushCacheToServer(artistId, entry) {
-    if (!_serverCacheUrl) return;
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 3000);
-      await fetch(`${_serverCacheUrl}/api/cache`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artistId, albums: entry.albums, ts: entry.ts }),
-        signal: controller.signal,
-      });
-    } catch { /* fire and forget */ }
+  // ── ALBUM CACHE ───────────────────────────────────────
+  // Kompletten Cache vom Server laden (einmalig beim Start)
+  async function loadServerCache() {
+    const data = await syncFetch('/api/cache', { timeout: 5000 });
+    if (!data?.cache) return false;
+    let count = 0;
+    for (const [artistId, entry] of Object.entries(data.cache)) {
+      // Nur laden wenn noch frisch (max 24h alt)
+      if (RE_SPOTIFY_ID.test(artistId) && entry?.ts && Date.now() - entry.ts < CACHE_TTL && Array.isArray(entry.albums) && entry.albums.length) {
+        _albumCache.set(artistId, { albums: entry.albums.map(_slimAlbum), ts: entry.ts });
+        count++;
+      }
+    }
+    console.log(`[Cache] Loaded ${count} artists from server`);
+    return count > 0;
+  }
+
+  // Cache-Eintrag zum Server hochladen (nach Spotify-Abruf) — fire and forget
+  function _pushCacheToServer(artistId, entry) {
+    syncFetch('/api/cache', { method: 'POST', body: { artistId, albums: entry.albums, ts: entry.ts } });
+  }
+
+  // ── SLIM ──────────────────────────────────────────────
+  // Spotify liefert pro Track/Album viele Felder, die die App nie nutzt
+  // (available_markets, href, external_urls …). Die blähten tracks.json auf
+  // dem Sync-Server auf ~22 KB pro Album auf. Wir speichern nur das Nötige.
+  function _slimAlbum(a) {
+    if (!a) return a;
+    return { id: a.id, name: a.name, album_type: a.album_type, release_date: a.release_date,
+      total_tracks: a.total_tracks, images: (a.images || []).map(i => ({ url: i.url, width: i.width, height: i.height })) };
+  }
+
+  function _slimTrack(t) {
+    return {
+      id: t.id, name: t.name, uri: t.uri, duration_ms: t.duration_ms,
+      track_number: t.track_number, disc_number: t.disc_number,
+      artists: (t.artists || []).map(a => ({ id: a.id, name: a.name })),
+      albumArt: t.albumArt || '',
+      album: t.album ? { id: t.album.id, name: t.album.name, release_date: t.album.release_date,
+        album_type: t.album.album_type, images: (t.album.images || []).map(i => ({ url: i.url, width: i.width, height: i.height })) } : undefined,
+    };
   }
 
   // ── TRACK CACHE ───────────────────────────────────────
+  function _isTracksCached(albumId) {
+    const c = _trackCache.get(albumId);
+    return !!(c && Date.now() - c.ts < CACHE_TTL);
+  }
+
   async function _getCachedTracks(albumId, albumData) {
     const cached = _trackCache.get(albumId);
     if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.tracks;
-    const data = await _fetch(`/albums/${albumId}/tracks?limit=50&market=${_userMarket}`).catch(()=>null);
+    if (!RE_SPOTIFY_ID.test(String(albumId))) return [];
+    const data = await _fetch(`/albums/${_sid(albumId)}/tracks?limit=50&market=${_userMarket}`).catch(()=>null);
     if (!data?.items?.length) return [];
     const tracks = _enrichTracks(data.items, albumData);
     const entry = { tracks, ts: Date.now() };
@@ -215,39 +279,22 @@ const SpotifyAPI = (() => {
     return tracks;
   }
 
-  async function _pushTrackCacheToServer(albumId, entry) {
-    if (!_serverCacheUrl) return;
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 3000);
-      await fetch(`${_serverCacheUrl}/api/tracks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ albumId, tracks: entry.tracks, ts: entry.ts }),
-        signal: controller.signal,
-      });
-    } catch { /* fire and forget */ }
+  function _pushTrackCacheToServer(albumId, entry) {
+    syncFetch('/api/tracks', { method: 'POST', body: { albumId, tracks: entry.tracks, ts: entry.ts } });
   }
 
   async function loadServerTrackCache() {
-    if (!_serverCacheUrl) return false;
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`${_serverCacheUrl}/api/tracks`, { signal: controller.signal });
-      if (!res.ok) return false;
-      const data = await res.json();
-      if (!data?.cache) return false;
-      let count = 0;
-      for (const [albumId, entry] of Object.entries(data.cache)) {
-        if (entry.ts && Date.now() - entry.ts < CACHE_TTL) {
-          _trackCache.set(albumId, entry);
-          count++;
-        }
+    const data = await syncFetch('/api/tracks', { timeout: 5000 });
+    if (!data?.cache) return false;
+    let count = 0;
+    for (const [albumId, entry] of Object.entries(data.cache)) {
+      if (RE_SPOTIFY_ID.test(albumId) && entry?.ts && Date.now() - entry.ts < CACHE_TTL && Array.isArray(entry.tracks)) {
+        _trackCache.set(albumId, { tracks: entry.tracks.map(_slimTrack), ts: entry.ts });
+        count++;
       }
-      console.log(`[Cache] Loaded ${count} album track lists from server`);
-      return count > 0;
-    } catch { return false; }
+    }
+    console.log(`[Cache] Loaded ${count} album track lists from server`);
+    return count > 0;
   }
 
   async function _getCachedAlbums(artistId) {
@@ -256,11 +303,23 @@ const SpotifyAPI = (() => {
     if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.albums;
     // 2. Spotify API abrufen
     const albums = [];
+    let failed = false;
     for (let offset = 0; offset < 40; offset += 10) {
-      const data = await _fetch(`/artists/${artistId}/albums?include_groups=album,single&limit=10&offset=${offset}`).catch(()=>null);
+      let data = null;
+      try { data = await _fetch(`/artists/${_sid(artistId)}/albums?include_groups=album,single&limit=10&offset=${offset}`); }
+      catch (err) {
+        if (err.message === 'NOT_AUTHENTICATED') throw err;
+        failed = true; break;
+      }
       const items = data?.items || [];
-      albums.push(...items);
+      albums.push(...items.map(_slimAlbum));
       if (items.length < 10) break;
+    }
+    // Fehlgeschlagene oder leere Abrufe NICHT cachen — sonst wäre der Artist
+    // 24h lang (auch auf allen anderen Geräten über den Sync-Server) „leer".
+    if (failed || !albums.length) {
+      if (failed) console.warn(`[Cache] Album-Abruf für ${artistId} fehlgeschlagen — nicht gecacht`);
+      return albums;
     }
     const entry = { albums, ts: Date.now() };
     _albumCache.set(artistId, entry);
@@ -271,26 +330,47 @@ const SpotifyAPI = (() => {
 
   // ── HELPERS ───────────────────────────────────────────
   function _enrichTracks(tracks, album) {
-    const albumArt = album.images?.[0]?.url || '';
-    return tracks.map(t => ({
+    const albumArt = album?.images?.[0]?.url || '';
+    return tracks.map(t => _slimTrack({
       ...t, albumArt,
-      album: { name: album.name, release_date: album.release_date, album_type: album.album_type, images: album.images },
+      album: { id: album?.id, name: album?.name, release_date: album?.release_date, album_type: album?.album_type, images: album?.images || [] },
     }));
+  }
+
+  // Wortgrenzen statt includes(): „Deliverance", „Alive", „Olive" enthalten
+  // „live", sind aber keine Live-Alben.
+  const RE_LIVE_ALBUM  = /\b(live|concert|unplugged)\b/i;
+  const RE_LIVE_TRACK  = [
+    /[(\[\-–—]\s*live\b/i,                         // "Song (Live)", "Song - Live at …"
+    /\blive\s+(at|in|from|aus|im|vom|auf|on)\b/i,  // "Live at Wacken", "Live in Berlin"
+    /\bunplugged\b/i, /\bin concert\b/i,
+  ];
+  const RE_COMMENTARY = /\b(commentary|kommentar)\b/i;
+
+  function _albumPassesFilters(a, filters) {
+    const n = a.name || '';
+    if (filters.noLive && (RE_LIVE_ALBUM.test(n) || a.album_type === 'live')) return false;
+    if (filters.noCommentary && RE_COMMENTARY.test(n)) return false;
+    if (filters.yearFrom || filters.yearTo) {
+      const y = parseInt((a.release_date || '0').slice(0, 4), 10);
+      if (filters.yearFrom && y < filters.yearFrom) return false;
+      if (filters.yearTo   && y > filters.yearTo)   return false;
+    }
+    return true;
   }
 
   function _applyFilters(tracks, filters, blacklist) {
     let r = tracks.filter(t => !blacklist.has(t.id));
     if (filters.noLive) {
-      const LIVE_ALBUM = ['live', 'concert', 'unplugged'];
-      // Für Tracknamen nur eindeutige Muster — "live" allein trifft zu viele Songnamen
-      const LIVE_TRACK = [' live', '(live', '- live', 'live at ', 'live in ', 'unplugged', 'concert'];
       r = r.filter(t => {
-        const track = (t.name||'').toLowerCase();
-        const album = (t.album?.name||'').toLowerCase();
-        if (LIVE_ALBUM.some(k => album.includes(k))) return false;
-        if (LIVE_TRACK.some(k => track.includes(k))) return false;
-        return true;
+        if (RE_LIVE_ALBUM.test(t.album?.name || '')) return false;
+        const name = t.name || '';
+        return !RE_LIVE_TRACK.some(re => re.test(name));
       });
+    }
+    if (filters.noCommentary) {
+      // z.B. "The Nexus - Commentary" auf "The Nexus (Commentary)"
+      r = r.filter(t => !RE_COMMENTARY.test(t.name || '') && !RE_COMMENTARY.test(t.album?.name || ''));
     }
     if (filters.noInstrumental) {
       r = r.filter(t => {
@@ -326,6 +406,42 @@ const SpotifyAPI = (() => {
     return r;
   }
 
+  // ── SONG-ERKENNUNG (Single + Albumversion = ein Song) ──
+  // Gleicher Song erscheint oft als Single UND auf dem Album (verschiedene IDs).
+  // Ohne Zusammenfassung käme er doppelt so oft. Schlüssel = normalisierter Name
+  // ohne Zusätze wie "(Radio Edit)", "- Remastered 2011", "(Single Version)".
+  const RE_VERSION_WORDS = '(remaster(?:ed)?|single|radio|album|edit|version|mono|stereo|bonus|deluxe)';
+  const RE_VERSION_PAREN = new RegExp(`\\s*[(\\[][^)\\]]*\\b${RE_VERSION_WORDS}\\b[^)\\]]*[)\\]]`, 'gi');
+  const RE_VERSION_DASH  = new RegExp(`\\s+[-–—]\\s+[^-–—]*\\b${RE_VERSION_WORDS}\\b.*$`, 'i');
+  function _songKey(name) {
+    return (name || '').toLowerCase()
+      .replace(RE_VERSION_PAREN, '')
+      .replace(RE_VERSION_DASH, '')
+      .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
+  }
+  const ALBUM_PRIO = { album: 0, single: 1, compilation: 2 };
+  function _prio(t) { return ALBUM_PRIO[t.album?.album_type] ?? 3; }
+
+  // Aus allen bekannten Tracks pro Song genau EINE Version wählen (Album vor Single).
+  // Liefert: canonical (Set der Track-IDs), variants (key → [ids]), keyOf (id → key)
+  function _buildSongIndex(trackLists) {
+    const best = new Map(), variants = new Map(), keyOf = new Map();
+    for (const tracks of trackLists) {
+      for (const t of tracks) {
+        const k = _songKey(t.name) || t.id;
+        keyOf.set(t.id, k);
+        if (!variants.has(k)) variants.set(k, []);
+        const v = variants.get(k);
+        if (!v.includes(t.id)) v.push(t.id);
+        const b = best.get(k);
+        if (!b || _prio(t) < _prio(b) || (_prio(t) === _prio(b) && t.id < b.id)) best.set(k, t);
+      }
+    }
+    return { canonical: new Set([...best.values()].map(t => t.id)), variants, keyOf };
+  }
+
   // ── PUBLIC ────────────────────────────────────────────
   async function getMe() {
     // Hinweis: Seit Feb 2026 liefert /me kein country/email/product mehr.
@@ -333,7 +449,7 @@ const SpotifyAPI = (() => {
     return _fetch('/me');
   }
   async function getArtistAlbums(id, limit=10, offset=0) {
-    return (await _fetch(`/artists/${id}/albums?include_groups=album,single&limit=${limit}&offset=${offset}`))?.items || [];
+    return (await _fetch(`/artists/${_sid(id)}/albums?include_groups=album,single&limit=${limit}&offset=${offset}`))?.items || [];
   }
   async function searchArtists(q, limit=8) {
     if (!q.trim()) return [];
@@ -342,77 +458,156 @@ const SpotifyAPI = (() => {
   async function getDevices()          { return (await _fetch('/me/player/devices'))?.devices || []; }
 
   async function playTrack(trackUri, deviceId) {
-    await _fetch(`/me/player/play${deviceId?`?device_id=${deviceId}`:''}`, { method:'PUT', body: JSON.stringify({ uris:[trackUri] }) });
+    await _fetch(`/me/player/play${deviceId?`?device_id=${encodeURIComponent(deviceId)}`:''}`, { method:'PUT', body: JSON.stringify({ uris:[trackUri] }) });
   }
   async function setVolume(vol, deviceId) {
-    await _fetch(`/me/player/volume?volume_percent=${Math.round(vol)}${deviceId?`&device_id=${deviceId}`:''}`, { method:'PUT' });
+    await _fetch(`/me/player/volume?volume_percent=${Math.round(vol)}${deviceId?`&device_id=${encodeURIComponent(deviceId)}`:''}`, { method:'PUT' });
   }
   async function seek(ms, deviceId) {
-    await _fetch(`/me/player/seek?position_ms=${Math.round(ms)}${deviceId?`&device_id=${deviceId}`:''}`, { method:'PUT' });
+    await _fetch(`/me/player/seek?position_ms=${Math.round(ms)}${deviceId?`&device_id=${encodeURIComponent(deviceId)}`:''}`, { method:'PUT' });
   }
   async function transferPlayback(deviceId, play=true) {
     await _fetch('/me/player', { method:'PUT', body: JSON.stringify({ device_ids:[deviceId], play }) });
   }
   async function setRepeat(state, deviceId) {
-    await _fetch(`/me/player/repeat?state=${state}${deviceId?`&device_id=${deviceId}`:''}`, { method:'PUT' });
+    await _fetch(`/me/player/repeat?state=${state}${deviceId?`&device_id=${encodeURIComponent(deviceId)}`:''}`, { method:'PUT' });
+  }
+
+  // ── TRACK-AUSWAHL ─────────────────────────────────────
+  // Ziel: jeder noch nicht gespielte Song eines Artists ist gleich wahrscheinlich —
+  // ohne bei kaltem Cache 25+ Alben auf einmal laden zu müssen (≈ 1 s pro Request).
+  //
+  // Verfahren (Rejection Sampling):
+  //  • Bereits gecachte Alben kennen wir genau → Gewicht = Anzahl wählbarer Songs.
+  //  • Ungecachte Alben bekommen ihr total_tracks als (Ober-)Schätzung.
+  //  • Album gewichtet ziehen. Bekannt → Song daraus nehmen.
+  //    Unbekannt → laden, dann einen „Platz" aus total_tracks würfeln: trifft er
+  //    einen wählbaren Song → nehmen, sonst neu ziehen. So bleibt die Verteilung
+  //    gleichmäßig, obwohl meist nur 1–2 Alben geladen werden.
+  //  • Nach MAX_FETCH_PER_PICK Nachladungen begnügen wir uns mit den bekannten Songs.
+  const MAX_FETCH_PER_PICK = 4;
+
+  function _keyOfTrack(t) { return _songKey(t.name) || t.id; }
+
+  async function _sampleTrack(albums, { filters, blacklist, history, onlyNew, played, useLock }) {
+    const raw = new Map(), known = new Map(), failed = new Set();
+    const addKnown = (album, tracks) => { raw.set(album.id, tracks); known.set(album.id, _applyFilters(tracks, filters, blacklist)); };
+    for (const a of albums) if (_isTracksCached(a.id)) addKnown(a, await _getCachedTracks(a.id, a));
+
+    const withVariants = t => {
+      const k = _keyOfTrack(t), ids = [];
+      for (const tracks of raw.values()) for (const x of tracks) if (_keyOfTrack(x) === k && !ids.includes(x.id)) ids.push(x.id);
+      return { ...t, variantIds: ids.length ? ids : [t.id] };
+    };
+    const rnd = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    let fetches = 0, pending = null;
+    for (let guard = 0; guard < albums.length * 2 + 4; guard++) {
+      const idx = _buildSongIndex([...known.values()]);
+      const playedKeys = new Set();
+      if (useLock) for (const tracks of raw.values()) for (const t of tracks) if (played.has(t.id)) playedKeys.add(_keyOfTrack(t));
+      const isEligible = t => idx.canonical.has(t.id)
+        && !(useLock && (played.has(t.id) || playedKeys.has(_keyOfTrack(t))))
+        && !(onlyNew && history.has(t.id));
+
+      const eligibleOf = new Map();
+      const weights = albums.map(a => {
+        if (failed.has(a.id)) return 0;
+        if (known.has(a.id)) { const e = known.get(a.id).filter(isEligible); eligibleOf.set(a.id, e); return e.length; }
+        return Math.max(1, a.total_tracks || 10);
+      });
+
+      // Gerade nachgeladenes Album: Rejection-Schritt
+      if (pending) {
+        const e = eligibleOf.get(pending.id) || [];
+        const j = Math.floor(Math.random() * Math.max(pending.w, e.length));
+        if (j < e.length) return withVariants(e[j]);
+        pending = null;
+      }
+
+      const total = weights.reduce((s, w) => s + w, 0);
+      if (!total) return null; // alles bekannt, nichts wählbar → erschöpft
+      let r = Math.random() * total, i = 0;
+      for (; i < albums.length - 1; i++) { r -= weights[i]; if (r < 0) break; }
+      while (!weights[i] && i > 0) i--;
+      const album = albums[i];
+
+      if (known.has(album.id)) return withVariants(rnd(eligibleOf.get(album.id)));
+
+      if (fetches >= MAX_FETCH_PER_PICK) {
+        const allE = [...eligibleOf.values()].flat();
+        if (allE.length) return withVariants(rnd(allE));
+      }
+      fetches++;
+      const tracks = await _getCachedTracks(album.id, album);
+      if (!tracks.length) { failed.add(album.id); continue; }
+      addKnown(album, tracks);
+      pending = { id: album.id, w: weights[i] };
+    }
+    return null;
   }
 
   async function getRandomTrack(artistId, filters={}, blacklist=new Set(), history=new Set(), onlyNew=false, artistTrackHistory={}, artistRepeatLimit=3) {
-    let albums = await _getCachedAlbums(artistId);
+    const albums = (await _getCachedAlbums(artistId)).filter(a => _albumPassesFilters(a, filters));
     if (!albums.length) return null;
-    if (filters.noLive) albums = albums.filter(a=>{ const n=(a.name||'').toLowerCase(); return !n.includes('live')&&!n.includes('concert')&&!n.includes('unplugged')&&a.album_type!=='live'; });
-    if (filters.yearFrom||filters.yearTo) {
-      albums = albums.filter(a=>{ const y=parseInt((a.release_date||'0').slice(0,4),10); if(filters.yearFrom&&y<filters.yearFrom)return false; if(filters.yearTo&&y>filters.yearTo)return false; return true; });
-    }
-    if (!albums.length) return null;
-    // Alle gespielten Tracks dieses Artists sperren — erst resetten wenn Diskografie erschöpft
-    const playedForArtist = new Set(artistTrackHistory[artistId] || []);
-    // Alben in zufälliger Reihenfolge (Sicherheitslimit gegen Riesen-Diskografien)
-    const candidates = [...albums].sort(()=>Math.random()-0.5).slice(0, 25);
-
-    // WICHTIG: Erst ALLE Tracks aller Kandidaten-Alben sammeln, dann gleichverteilt
-    // einen Track wählen. Früher wurde erst ein Album gewählt und dann ein Track daraus —
-    // dadurch waren Singles/kurze Alben massiv überrepräsentiert (ein Track auf einer
-    // Single hatte 100% Chance, ein Track auf einem 15-Track-Album nur 1/15).
-    let allTracks = [];
-    for (const album of candidates) {
-      const raw = await _getCachedTracks(album.id, album);
-      if (raw.length) allTracks.push(...raw);
-    }
-    // Duplikate entfernen (gleicher Track auf mehreren Alben/Compilations)
-    const seen = new Set();
-    allTracks = allTracks.filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
-
-    // Filter anwenden
-    let tracks = _applyFilters(allTracks, filters, blacklist);
-    if (onlyNew) { const f = tracks.filter(t=>!history.has(t.id)); if (f.length) tracks = f; }
-
-    // Bereits gespielte Tracks dieses Artists ausschließen (Sperre)
-    if (playedForArtist.size) {
-      const f = tracks.filter(t=>!playedForArtist.has(t.id));
-      if (f.length) {
-        // Gleichverteilt aus allen ungespielten Tracks wählen
-        return f[Math.floor(Math.random()*f.length)];
-      }
-      // Alle Tracks gespielt → Diskografie erschöpft, History zurücksetzen
+    // Alle gespielten Songs dieses Artists sperren — erst resetten wenn Diskografie erschöpft
+    const played = new Set(artistTrackHistory[artistId] || []);
+    const opts = { filters, blacklist, history, onlyNew, played, useLock: played.size > 0 };
+    let t = await _sampleTrack(albums, opts);
+    if (!t && onlyNew) t = await _sampleTrack(albums, { ...opts, onlyNew: false });
+    if (!t && played.size) {
       console.log(`[Shuffle] Diskografie von Artist ${artistId} erschöpft — History reset`);
       artistTrackHistory[artistId] = [];
+      t = await _sampleTrack(albums, { ...opts, onlyNew: false, useLock: false });
     }
-
-    // Keine Sperre aktiv (oder gerade resettet) → gleichverteilt aus allen Tracks
-    if (tracks.length) return tracks[Math.floor(Math.random()*tracks.length)];
-    return null;
+    // artistId mitgeben: die App sperrt den Song (inkl. aller Versionen) sofort beim Einreihen
+    return t ? { ...t, artistId } : null;
   }
 
   async function getArtistAlbumsFull(artistId) { return _getCachedAlbums(artistId); }
 
   async function getRandomTrackFromAlbum(albumId, albumData, blacklist=new Set(), history=new Set(), onlyNew=false) {
-    const data = await _fetch(`/albums/${albumId}/tracks?limit=50&market=${_userMarket}`).catch(()=>null);
-    if (!data?.items?.length) return null;
-    let tracks = _applyFilters(_enrichTracks(data.items, albumData), {}, blacklist);
+    let tracks = _applyFilters(await _getCachedTracks(albumId, albumData), {}, blacklist);
     if (onlyNew) { const f=tracks.filter(t=>!history.has(t.id)); if(f.length) tracks=f; }
     if (!tracks.length) return null;
     return tracks[Math.floor(Math.random()*tracks.length)];
+  }
+
+  // Tracks eines Albums (gecacht). Ohne albumData wird bei Cache-Miss geladen,
+  // aber nicht gecacht — sonst landen unvollständige Albumdaten im Cache.
+  async function getAlbumTracks(albumId, albumData=null) {
+    if (_isTracksCached(albumId) || albumData) return _getCachedTracks(albumId, albumData);
+    const data = await _fetch(`/albums/${_sid(albumId)}/tracks?limit=50&market=${_userMarket}`);
+    return _enrichTracks(data?.items || [], { id: albumId });
+  }
+
+  // Track-Status für das Album-Menü: dieselben Filter, dieselbe Song-Erkennung wie der Shuffle.
+  async function getArtistTrackStatus(artistId, filters={}, blacklist=new Set(), playedIds=new Set(), onProgress=null) {
+    const albums = (await _getCachedAlbums(artistId)).filter(a => _albumPassesFilters(a, filters));
+    const rawLists = [], lists = [];
+    for (let i = 0; i < albums.length; i++) {
+      const tracks = await _getCachedTracks(albums[i].id, albums[i]);
+      rawLists.push(tracks);
+      lists.push(_applyFilters(tracks, filters, blacklist));
+      onProgress?.(i + 1, albums.length);
+    }
+    const idx = _buildSongIndex(lists);
+    const playedKeys = new Set(rawLists.flat().filter(t => playedIds.has(t.id)).map(_keyOfTrack));
+    return lists.flat().filter(t => idx.canonical.has(t.id)).map(t => ({
+      id: t.id, name: t.name, album: t.album?.name || '',
+      played: playedIds.has(t.id) || playedKeys.has(_keyOfTrack(t)),
+    }));
+  }
+
+  // Seit Feb 2026: POST /me/playlists und POST /playlists/{id}/items
+  // (die alten /users/{id}/playlists und /playlists/{id}/tracks sind entfernt)
+  async function createPlaylist(name, description, uris) {
+    const pl = await _fetch('/me/playlists', { method: 'POST', body: JSON.stringify({ name, description, public: false }) });
+    if (!pl?.id) throw new Error('Playlist konnte nicht erstellt werden');
+    for (let i = 0; i < uris.length; i += 100) {
+      await _fetch(`/playlists/${_sid(pl.id)}/items`, { method: 'POST', body: JSON.stringify({ uris: uris.slice(i, i + 100) }) });
+    }
+    return pl;
   }
 
   // Genre-Shuffle — seit Feb 2026 ist limit bei /search auf max. 10 begrenzt.
@@ -463,8 +658,9 @@ const SpotifyAPI = (() => {
     getMe, searchArtists, getArtistAlbums,
     getDevices, playTrack, setVolume, seek, transferPlayback, setRepeat,
     getRandomTrack, getArtistAlbumsFull, getRandomTrackFromAlbum,
+    getAlbumTracks, getArtistTrackStatus, createPlaylist,
     getRandomTrackByGenre, getAvailableGenres,
-    setServerCacheUrl, loadServerCache, loadServerTrackCache,
+    setServerCacheUrl, loadServerCache, loadServerTrackCache, syncFetch,
   };
 
 })();
