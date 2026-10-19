@@ -1,0 +1,14 @@
+{
+  "name": "music-shuffle-tests",
+  "private": true,
+  "description": "Regressionstests für Music Shuffle (nicht auf den Webserver/NAS kopieren)",
+  "scripts": {
+    "test": "node run-all.js",
+    "test:logic": "node logic.test.js",
+    "test:sync": "node sync-server.test.js",
+    "test:ui": "node ui.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

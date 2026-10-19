@@ -31,23 +31,32 @@ Schrift: **Verdana** — kein Webfont, keine externen Requests.
 
 | Datei | Zweck |
 |-------|-------|
-| `app.js` | App-Logik, UI, Player, State |
+| `app.js` | Einstieg: Start, Login, Event-Verdrahtung |
+| `js/core.js` | State, localStorage, Validierung, Hilfsfunktionen |
+| `js/sync.js` | Sync-Server |
+| `js/player.js` | Web Playback SDK, Geräte, Reconnect, Medientasten |
+| `js/shuffle.js` | Shuffle, Queue, Verlauf, Blacklist |
+| `js/lists.js` | Listen, Künstler, Alben, Genres, Suche, Filter |
+| `js/ui.js` | Statistiken, Theme, Tastatur, PWA, Changelog-Dialog |
+| `js/changelog.js` | In-App-Changelog |
 | `spotify-api.js` | Spotify API Wrapper + OAuth PKCE |
 | `i18n.js` | Übersetzungen DE/EN |
 | `style.css` | Alle Styles (nutzt Sideforge-Tokens) |
 | `sideforge-tokens.css` | Design System Tokens |
-| `sync-server.js` | Optionaler Node.js Sync-Server |
+| `sync-server/` | Optionaler Node.js Sync-Server (`sync-server.js` + `Dockerfile` + Anleitung) |
+| `tests/` | Automatische Tests (Logik, Sync-Server, UI) — nicht auf den Webserver |
 
 ---
 
 ## Neue Features
 
 1. Fork erstellen
-2. Feature in `app.js` / `spotify-api.js` implementieren
+2. Feature im passenden Modul (`js/*.js`) bzw. `spotify-api.js` implementieren
 3. UI-Strings in `i18n.js` ergänzen (DE + EN)
 4. Styles in `style.css` mit Sideforge-Tokens
-5. Changelog-Eintrag in `CHANGELOG.md`
-6. Pull Request erstellen
+5. Tests ausführen: `cd tests && npm install && npm test` (bei neuen Features Test ergänzen)
+6. Changelog-Eintrag in `CHANGELOG.md`
+7. Pull Request erstellen
 
 ---
 
@@ -58,7 +67,9 @@ Schrift: **Verdana** — kein Webfont, keine externen Requests.
 | `/api/lists` | GET, POST, DELETE | Artist-Listen |
 | `/api/stats` | GET, POST | Wiedergabe-Statistiken |
 | `/api/blacklist` | GET, POST | Gesperrte Tracks |
-| `/api/cache` | GET, POST | Album-Cache |
+| `/api/cache` | GET, POST | Album-Cache (24h) |
+| `/api/tracks` | GET, POST | Track-Cache pro Album (24h) |
+| `/api/track-history` | GET, POST | Gespielte Tracks pro Artist (Sperre) |
 | `/api/health` | GET | Status-Check |
 
 ---

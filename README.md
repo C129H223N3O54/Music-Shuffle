@@ -2,7 +2,7 @@
 
 > Shuffle through your favorite Spotify artists and genres — no algorithm, just your picks.
 
-[![Version](https://img.shields.io/badge/version-1.5.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.3-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Vanilla JS](https://img.shields.io/badge/Built%20with-Vanilla%20JS-yellow)
 ![Spotify API](https://img.shields.io/badge/Spotify-Web%20API%20%2B%20SDK-1DB954)
@@ -48,6 +48,7 @@
 - 🎼 No instrumentals — filters tracks with "instrumental", "karaoke", "backing track" etc. in the name
 - 🎸 No acoustic versions — filters tracks with "acoustic", "unplugged", "stripped" etc. in track or album name
 - 🎻 No orchestral versions — filters tracks with "orchestral" in track or album name
+- 🎙️ No commentary tracks — filters tracks/albums with "commentary" in the name (e.g. "The Nexus - Commentary")
 - 🔁 Artist repeat limit — configurable minimum tracks between repeats of the same artist (default: 3)
 - 📅 Year range
 
@@ -207,7 +208,8 @@ Open [http://localhost:8080](http://localhost:8080) in your browser.
 music-shuffle/
 ├── index.html              # Main HTML
 ├── style.css               # All styles
-├── app.js                  # App logic, UI, player, state management
+├── app.js                  # Entry point: boot, login, event wiring
+├── js/                     # App modules (core, sync, player, shuffle, lists, ui, changelog)
 ├── spotify-api.js          # Spotify API wrapper + OAuth PKCE flow
 ├── config.js               # Your config — not in git!
 ├── config.example.js       # Config template
@@ -215,11 +217,12 @@ music-shuffle/
 ├── service-worker.js       # PWA service worker + offline cache
 ├── favicon.svg             # SVG favicon
 ├── favicon.ico             # ICO favicon
-├── icons/                  # PWA icons (72, 96, 128, 192, 512px)
+├── icons/                  # PWA icons (96–512px, maskable, Apple touch)
 ├── sync-server/
 │   ├── sync-server.js      # Optional Node.js sync server
 │   ├── Dockerfile          # Docker image
 │   └── SYNC-SERVER.md      # Sync server setup guide
+├── tests/                  # Automated tests (repo only, not for the web server)
 ├── DEPLOYMENT.md           # Self-hosting deployment guide
 ├── CONTRIBUTING.md         # Contribution guidelines
 ├── README.md               # This file
@@ -301,6 +304,9 @@ Extended Quota (required to unlock restricted APIs) now requires 250,000 monthly
 - **OAuth 2.0 PKCE** — most secure flow for public clients, no client secret needed
 - `config.js` is in `.gitignore` — your Client ID never gets committed
 - Blacklisted tracks and albums stored locally in `localStorage`
+- **Sync server login (v1.6.0)** — set `ALLOWED_USERS` to your Spotify user ID; the app sends its Spotify access token and the server checks it against Spotify. No extra password, nothing secret in `config.js`
+- **Content Security Policy** — only own scripts and the Spotify SDK may run; injected inline scripts are blocked
+- All list data (sync, import, storage) is validated; image URLs and IDs are escaped before rendering
 
 ---
 

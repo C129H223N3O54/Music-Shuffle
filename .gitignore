@@ -20,6 +20,9 @@ desktop.ini
 # Logs
 *.log
 
+# Backups
+*.bak-*
+
 # Node (if used locally for tooling)
 node_modules/
 npm-debug.log*
