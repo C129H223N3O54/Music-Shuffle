@@ -8,7 +8,7 @@
    Service-Worker-Cache nicht mehr manuell geleert werden.
    ═══════════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'music-shuffle-v1.6.3';
+const CACHE_NAME = 'music-shuffle-v1.6.4';
 const STATIC_ASSETS = [
   '/music-shuffle/',
   '/music-shuffle/index.html',

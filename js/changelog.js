@@ -7,6 +7,27 @@
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
   {
+    version: '1.6.4',
+    date: '2026-10-23',
+    label: { de: 'Artist-Wiederholung repariert', en: 'Artist Repeat Fixed' },
+    fixed: {
+      de: [
+        'Alben in der Liste haben die Artist-Wiederholung umgangen — derselbe Artist konnte direkt hintereinander kommen',
+        'Album-Einträge halten jetzt auch die Song-Sperre ein (vorher konnten Songs vor Ende der Diskografie doppelt kommen)',
+        'Beim Neustart eines Diskografie-Durchlaufs konnte ein bereits eingereihter Song noch einmal gezogen werden',
+      ],
+      en: [
+        'Albums in a list bypassed the artist repeat limit — the same artist could play back to back',
+        'Album entries now also respect the song lock (songs could repeat before the discography was exhausted)',
+        'When a discography cycle restarted, a song already in the queue could be drawn again',
+      ],
+    },
+    added: {
+      de: ['Fairness-Test: simuliert tausende Titel mit dem echten App-Code und prüft Abstände, Sperre und Verteilung'],
+      en: ['Fairness test: simulates thousands of tracks with the real app code and checks spacing, lock and distribution'],
+    },
+  },
+  {
     version: '1.6.3',
     date: '2026-10-19',
     label: { de: 'Neues Logo', en: 'New Logo' },

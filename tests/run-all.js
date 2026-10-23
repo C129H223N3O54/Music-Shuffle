@@ -7,7 +7,7 @@ const path = require('path');
 let hasPlaywright = true;
 try { require.resolve('playwright'); } catch { try { require.resolve('/opt/npm-tools/node_modules/playwright'); } catch { hasPlaywright = false; } }
 
-const suites = ['logic.test.js', 'sync-server.test.js', ...(hasPlaywright ? ['ui.test.js'] : [])];
+const suites = ['logic.test.js', 'sync-server.test.js', ...(hasPlaywright ? ['ui.test.js', 'fairness.test.js'] : [])];
 let failed = 0;
 for (const s of suites) {
   const r = spawnSync(process.execPath, [path.join(__dirname, s)], { stdio: 'inherit' });

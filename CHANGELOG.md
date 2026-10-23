@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.4] — 2026-10-23 — Artist Repeat Fixed
+
+### Fixed
+- **Albums bypassed the artist repeat limit** — `chooseSource()` only kept *artist* entries of recently played artists out of the pool; album entries of the same artist stayed in, so the artist could play back to back. Album entries are now filtered by their `artistId` too.
+- **Albums bypassed the song lock** — `getRandomTrackFromAlbum()` ignored the per-artist lock and returned tracks without `artistId`, so they were never locked either. It now skips songs already played for that artist (incl. single/album variants) while the album has others, and returns `artistId` so the pick is locked.
+- **Cycle restart** — when an artist's discography was exhausted the lock was cleared completely, so a song already waiting in the queue could be drawn again. Queued songs now stay locked into the new cycle.
+
+### Added
+- `tests/fairness.test.js` — runs the real app in headless Chromium with a mocked catalogue (10 artists, 12–200 songs) and plays 600 tracks per scenario the way the app does (next → queue/shuffle → SDK reports track → history). Checks: no artist within the repeat limit, no song repeated before the discography is exhausted, χ² over artist shares, plays-per-song spread. Part of `node tests/run-all.js`.
+
+---
+
 ## [1.6.3] — 2026-10-19 — New Logo
 
 ### Changed
