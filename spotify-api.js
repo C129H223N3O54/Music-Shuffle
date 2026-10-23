@@ -547,7 +547,10 @@ const SpotifyAPI = (() => {
     return null;
   }
 
-  async function getRandomTrack(artistId, filters={}, blacklist=new Set(), history=new Set(), onlyNew=false, artistTrackHistory={}, artistRepeatLimit=3) {
+  // inFlight: IDs, die schon in der Queue stehen. Sie bleiben auch nach einem Reset
+  // (Diskografie erschöpft) gesperrt — sonst konnte ein Song, der gerade erst
+  // eingereiht wurde, gleich noch einmal gezogen werden.
+  async function getRandomTrack(artistId, filters={}, blacklist=new Set(), history=new Set(), onlyNew=false, artistTrackHistory={}, artistRepeatLimit=3, inFlight=[]) {
     const albums = (await _getCachedAlbums(artistId)).filter(a => _albumPassesFilters(a, filters));
     if (!albums.length) return null;
     // Alle gespielten Songs dieses Artists sperren — erst resetten wenn Diskografie erschöpft
@@ -557,8 +560,10 @@ const SpotifyAPI = (() => {
     if (!t && onlyNew) t = await _sampleTrack(albums, { ...opts, onlyNew: false });
     if (!t && played.size) {
       console.log(`[Shuffle] Diskografie von Artist ${artistId} erschöpft — History reset`);
-      artistTrackHistory[artistId] = [];
-      t = await _sampleTrack(albums, { ...opts, onlyNew: false, useLock: false });
+      const keep = new Set(inFlight);
+      artistTrackHistory[artistId] = [...keep];
+      t = keep.size ? await _sampleTrack(albums, { ...opts, onlyNew: false, played: keep, useLock: true }) : null;
+      if (!t) t = await _sampleTrack(albums, { ...opts, onlyNew: false, useLock: false });
     }
     // artistId mitgeben: die App sperrt den Song (inkl. aller Versionen) sofort beim Einreihen
     return t ? { ...t, artistId } : null;
@@ -566,11 +571,21 @@ const SpotifyAPI = (() => {
 
   async function getArtistAlbumsFull(artistId) { return _getCachedAlbums(artistId); }
 
-  async function getRandomTrackFromAlbum(albumId, albumData, blacklist=new Set(), history=new Set(), onlyNew=false) {
+  // Einzelnes Album aus der Liste. played = Song-Sperre des Album-Artists: Songs, die
+  // schon gespielt wurden (auch als Single/auf anderem Album), werden übersprungen,
+  // solange das Album noch andere hat. artistId wird mitgegeben, damit die App sperrt.
+  async function getRandomTrackFromAlbum(albumId, albumData, blacklist=new Set(), history=new Set(), onlyNew=false, played=new Set()) {
     let tracks = _applyFilters(await _getCachedTracks(albumId, albumData), {}, blacklist);
     if (onlyNew) { const f=tracks.filter(t=>!history.has(t.id)); if(f.length) tracks=f; }
+    if (played.size) {
+      const playedKeys = new Set();
+      for (const c of _trackCache.values()) for (const t of c.tracks) if (played.has(t.id)) playedKeys.add(_keyOfTrack(t));
+      const f = tracks.filter(t => !played.has(t.id) && !playedKeys.has(_keyOfTrack(t)));
+      if (f.length) tracks = f;
+    }
     if (!tracks.length) return null;
-    return tracks[Math.floor(Math.random()*tracks.length)];
+    const t = tracks[Math.floor(Math.random()*tracks.length)];
+    return { ...t, artistId: albumData?.artistId || t.artists?.[0]?.id, variantIds: [t.id] };
   }
 
   // Tracks eines Albums (gecacht). Ohne albumData wird bei Cache-Miss geladen,

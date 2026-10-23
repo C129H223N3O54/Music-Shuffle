@@ -7,6 +7,7 @@
 |---|---|---|
 | `logic.test.js` | `spotify-api.js` in einer Node-VM mit simuliertem Spotify: Cache bei Fehlern, Song-Erkennung Single/Album, Gleichverteilung, Request-Anzahl bei kaltem Cache, Token-Refresh, Live-/Commentary-Filter, Playlist-Endpunkte, Scopes | Node ≥ 18 |
 | `sync-server.test.js` | `sync-server/sync-server.js` im Temp-Ordner: atomare Writes, Cache-Pruning, Verschlankung, Validierung, Health, Neustart | Node ≥ 18 |
+| `fairness.test.js` | Simuliert 600 Titel je Szenario mit der echten App: Artist-Wiederholung, Song-Sperre, Gleichverteilung (χ²) | Playwright + Chromium |
 | `ui.test.js` | Komplette App im Headless-Chromium mit Fake-Web-Playback-SDK, gemockter Spotify-API und echtem Sync-Server | Playwright + Chromium |
 
 ```bash

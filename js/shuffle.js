@@ -83,7 +83,9 @@ function chooseSource(list, { forQueue = false } = {}) {
       .map(x => ({ ...x, remaining: x.remaining - 1 }))
       .filter(x => x.remaining > 0);
   }
-  const reduced = pool.filter(p => p.type !== 'artist' || !avoid.has(p.data.id));
+  // Auch Alben eines eben gespielten Artists meiden — sonst umgehen Album-Einträge die Sperre
+  const artistOf = p => p.type === 'artist' ? p.data.id : p.type === 'album' ? p.data.artistId : null;
+  const reduced = pool.filter(p => !avoid.has(artistOf(p)));
   if (reduced.length) pool = reduced;
 
   const picked = _randomItem(pool);
@@ -95,6 +97,16 @@ function chooseSource(list, { forQueue = false } = {}) {
 }
 
 // Holt einen Titel für die gewählte Quelle. Liefert { track, artistName, reason }.
+// Titel, die schon in der Queue stehen (inkl. Versionen). Sie zählen beim Neustart
+// eines Durchlaufs als „schon gezogen" — sonst könnte derselbe Song direkt noch
+// einmal in die Queue kommen. Bereits gespielte Titel gehören zum alten Durchlauf
+// und bleiben außen vor (sonst kämen sie im neuen Durchlauf zu kurz).
+function _inFlightIds() {
+  const ids = [];
+  for (const t of State.queue) ids.push(t.id, ...(t.variantIds || []));
+  return ids.filter(Boolean);
+}
+
 async function fetchTrackFor(source, list) {
   const filters   = list.filters || defaultFilters();
   const blacklist = getBlacklistSet();
@@ -102,13 +114,15 @@ async function fetchTrackFor(source, list) {
     const track = await SpotifyAPI.getRandomTrackByGenre(source.data, filters, blacklist);
     return { track, artistName: track?.artists?.[0]?.name || '—', reason: '🎸 Genre' };
   }
+  const lock = filters.noRepeat !== false;
   if (source.type === 'album') {
-    const track = await SpotifyAPI.getRandomTrackFromAlbum(source.data.id, source.data, blacklist, State.historyIds, State.onlyNew);
+    const played = lock ? new Set(State.artistTrackHistory[source.data.artistId] || []) : new Set();
+    const track = await SpotifyAPI.getRandomTrackFromAlbum(source.data.id, source.data, blacklist, State.historyIds, State.onlyNew, played);
     return { track, artistName: source.data.artistName, reason: '💿 Album' };
   }
   const artist = source.data;
   const track = await SpotifyAPI.getRandomTrack(artist.id, filters, blacklist, State.historyIds, State.onlyNew,
-    filters.noRepeat !== false ? State.artistTrackHistory : {});
+    lock ? State.artistTrackHistory : {}, filters.artistRepeatLimit, _inFlightIds());
   const reason = State.roundRobin ? '🔁 Round Robin' : artist.favorite ? '⭐ Favorit' : State.smartShuffle ? '🧠 Smart' : '🎲 Zufall';
   return { track, artistName: artist.name, reason };
 }
