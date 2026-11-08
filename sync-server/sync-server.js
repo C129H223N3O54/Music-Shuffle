@@ -20,6 +20,14 @@
  *  - CORS nur noch für ALLOWED_ORIGINS (Standard: alle — bitte setzen).
  *  - IDs werden geprüft, Sicherheits-Header gesetzt, Health ohne Anmeldung
  *    nur noch mit Status/Version.
+ *
+ * v1.7.0 — ein Container für alles:
+ *  - Liefert zusätzlich die Web-App unter /music-shuffle/ aus (WEB_DIR). Ein
+ *    Neubau des Containers aktualisiert damit App und Server gemeinsam.
+ *  - config.js (Client-ID, Adressen) kommt aus DATA_DIR — Laufzeit-Konfiguration
+ *    liegt neben den Daten und wird bei Updates nie überschrieben.
+ *  - /api/health meldet die Version der ausgelieferten App (APP_VERSION aus
+ *    js/core.js); die App bietet bei neuerer Server-Version „vX laden ↻" an.
  */
 
 'use strict';
@@ -29,14 +37,27 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3001;
-const DATA_FILE       = process.env.DATA_FILE       || '/data/lists.json';
-const STATS_FILE      = process.env.STATS_FILE      || '/data/stats.json';
-const CACHE_FILE      = process.env.CACHE_FILE      || '/data/cache.json';
-const BLACKLIST_FILE  = process.env.BLACKLIST_FILE  || '/data/blacklist.json';
-const TRACKS_FILE     = process.env.TRACKS_FILE     || '/data/tracks.json';
-const HISTORY_FILE    = process.env.HISTORY_FILE    || '/data/track-history.json';
+const DATA_DIR        = process.env.DATA_DIR        || '/data';
+const DATA_FILE       = process.env.DATA_FILE       || path.join(DATA_DIR, 'lists.json');
+const STATS_FILE      = process.env.STATS_FILE      || path.join(DATA_DIR, 'stats.json');
+const CACHE_FILE      = process.env.CACHE_FILE      || path.join(DATA_DIR, 'cache.json');
+const BLACKLIST_FILE  = process.env.BLACKLIST_FILE  || path.join(DATA_DIR, 'blacklist.json');
+const TRACKS_FILE     = process.env.TRACKS_FILE     || path.join(DATA_DIR, 'tracks.json');
+const HISTORY_FILE    = process.env.HISTORY_FILE    || path.join(DATA_DIR, 'track-history.json');
+const CONFIG_FILE     = process.env.CONFIG_FILE     || path.join(DATA_DIR, 'config.js');
 
-const VERSION = '1.6.0';
+// Web-App (optional): Ordner mit index.html, js/, icons/ … — im Container /app/web
+const WEB_DIR  = process.env.WEB_DIR ? path.resolve(process.env.WEB_DIR) : null;
+const WEB_BASE = '/music-shuffle/';
+
+// Version = Version der ausgelieferten App (eine Quelle: APP_VERSION in js/core.js)
+const SERVER_VERSION = '1.7.0';
+const VERSION = (() => {
+  try {
+    const core = fs.readFileSync(path.join(WEB_DIR || path.join(__dirname, '..'), 'js', 'core.js'), 'utf8');
+    return /const APP_VERSION = '([\d.]+)'/.exec(core)?.[1] || SERVER_VERSION;
+  } catch { return SERVER_VERSION; }
+})();
 
 // ── SICHERHEIT ───────────────────────────────────────────
 // ALLOWED_USERS:   Spotify-User-IDs, kommagetrennt (z.B. "kampfmade")
@@ -248,11 +269,65 @@ const AUTH_ERRORS = {
   503: 'Spotify zur Prüfung der Anmeldung nicht erreichbar',
 };
 
+// ── WEB-APP AUSLIEFERN ────────────────────────────────────
+const MIME = {
+  '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json',
+};
+const STATIC_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+};
+
+function sendStatic(req, res, file, { cache = 'no-cache' } = {}) {
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) { res.writeHead(404, STATIC_HEADERS); return res.end('Not found'); }
+    res.writeHead(200, {
+      ...STATIC_HEADERS,
+      'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+      'Content-Length': st.size,
+      'Cache-Control': cache,
+    });
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(file).pipe(res);
+  });
+}
+
+function serveStatic(req, res, pathname) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, STATIC_HEADERS); return res.end(); }
+  if (!WEB_DIR) { res.writeHead(404, STATIC_HEADERS); return res.end('Not found'); }
+  if (pathname === '/' || pathname === '/music-shuffle') {
+    res.writeHead(301, { ...STATIC_HEADERS, Location: WEB_BASE }); return res.end();
+  }
+  if (!pathname.startsWith(WEB_BASE)) { res.writeHead(404, STATIC_HEADERS); return res.end('Not found'); }
+
+  let rel;
+  try { rel = decodeURIComponent(pathname.slice(WEB_BASE.length)); }
+  catch { res.writeHead(400, STATIC_HEADERS); return res.end(); }
+  if (rel === '' ) rel = 'index.html';
+  // Keine versteckten Dateien, kein Ausbruch aus WEB_DIR
+  if (rel.includes('\0') || rel.split('/').some(seg => seg.startsWith('.'))) { res.writeHead(404, STATIC_HEADERS); return res.end('Not found'); }
+
+  // Konfiguration der Installation liegt in DATA_DIR, nicht im Code
+  if (rel === 'config.js') return sendStatic(req, res, CONFIG_FILE);
+
+  const file = path.resolve(WEB_DIR, rel);
+  if (!file.startsWith(WEB_DIR + path.sep)) { res.writeHead(404, STATIC_HEADERS); return res.end('Not found'); }
+  // Icons ändern sich selten → 1 Tag cachen; Code immer neu prüfen (Service Worker ist network-first)
+  const cache = /^icons\//.test(rel) || /\.(png|ico)$/.test(rel) ? 'public, max-age=86400' : 'no-cache';
+  sendStatic(req, res, file, { cache });
+}
+
 // ── SERVER ────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
   let pathname;
   try { pathname = new URL(req.url, 'http://localhost').pathname; }
   catch { res.writeHead(400, SECURITY_HEADERS); res.end(); return; } // kaputte URL darf den Server nicht abschießen
+
+  // ── Web-App (alles außer /api/) ─────────────────────────
+  if (!pathname.startsWith('/api/')) return serveStatic(req, res, pathname);
 
   if (pathname !== '/api/health') console.log(`[Sync] ${req.method} ${pathname}`);
 
@@ -379,6 +454,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Sync] Music Shuffle Sync-Server läuft auf Port ${PORT}`);
   console.log(`[Sync] Datei: ${DATA_FILE}`);
   console.log(`[Sync] Health: http://localhost:${PORT}/api/health`);
+  console.log(WEB_DIR ? `[Sync] Web-App v${VERSION}: http://localhost:${PORT}${WEB_BASE} (aus ${WEB_DIR})` : '[Sync] Ohne Web-App (WEB_DIR nicht gesetzt)');
   if (AUTH_ENABLED) console.log(`[Sync] Anmeldung aktiv — erlaubte Spotify-User: ${ALLOWED_USERS.join(', ')}`);
   else console.warn('[Sync] ⚠ WARNUNG: ALLOWED_USERS nicht gesetzt — jeder, der die URL kennt, kann Daten lesen, ändern und löschen!');
   if (ALLOWED_ORIGINS.includes('*')) console.warn('[Sync] ⚠ ALLOWED_ORIGINS nicht gesetzt — CORS für alle Webseiten offen');

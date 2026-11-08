@@ -263,6 +263,18 @@ const pickN = async (api, n, args) => { const out = []; for (let i = 0; i < n; i
       `gezogen: ${[...seen].join(',')}; bewusst hinzugefügtes Live-Album: ${live?.name}`);
   }
 
+  // L18 — Service-Worker-Cache-Version passt zur App-Version (sonst bleibt der alte Cache liegen)
+  {
+    const root = path.join(__dirname, '..');
+    const appV = /const APP_VERSION = '([\d.]+)'/.exec(fs.readFileSync(path.join(root, 'js', 'core.js'), 'utf8'))?.[1];
+    const cache = /const CACHE_NAME = '([^']+)'/.exec(fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8'))?.[1];
+    const badge = ['README.md', 'README_de.md'].every(f => fs.readFileSync(path.join(root, f), 'utf8').includes(`version-${appV}-blue`));
+    const log = /version: '([\d.]+)'/.exec(fs.readFileSync(path.join(root, 'js', 'changelog.js'), 'utf8'))?.[1];
+    const md = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8').includes(`## [${appV}]`);
+    check('L18 Release-Checkliste: CACHE_NAME, README-Badges, In-App- und CHANGELOG.md-Eintrag passen zu APP_VERSION',
+      cache === `music-shuffle-v${appV}` && badge && log === appV && md, `APP_VERSION ${appV}, CACHE_NAME ${cache}, Badges ${badge}, In-App ${log}, CHANGELOG.md ${md}`);
+  }
+
   // L16 — Jeder in der App benutzte Übersetzungsschlüssel existiert auf Deutsch UND Englisch
   {
     const root = path.join(__dirname, '..');

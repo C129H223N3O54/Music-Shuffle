@@ -1,0 +1,8 @@
+# Zeilenenden im Repo immer LF — sonst brechen Shell-Skripte (update.sh) mit Windows-CRLF
+* text=auto eol=lf
+
+# Binärdateien nie anfassen
+*.png binary
+*.ico binary
+*.jpg binary
+*.woff2 binary

@@ -118,7 +118,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await new Promise(r => fake.listen(PORT + 2, '127.0.0.1', r));
   const DIR2 = fs.mkdtempSync(path.join(os.tmpdir(), 'ms-sync-auth-'));
   const PORT2 = PORT + 1, BASE2 = `http://127.0.0.1:${PORT2}`;
-  srv = await start({ ALLOWED_USERS: 'KampfMade', ALLOWED_ORIGINS: 'https://shuffle.example', SPOTIFY_ME_URL: `http://127.0.0.1:${PORT + 2}/v1/me` }, PORT2, DIR2);
+  fs.writeFileSync(path.join(DIR2, 'config.js'), "window.SPOTIFY_CONFIG = { clientId: 'aus-data' };");
+  srv = await start({ ALLOWED_USERS: 'KampfMade', ALLOWED_ORIGINS: 'https://shuffle.example', SPOTIFY_ME_URL: `http://127.0.0.1:${PORT + 2}/v1/me`,
+    WEB_DIR: path.join(__dirname, '..'), DATA_DIR: DIR2, CONFIG_FILE: path.join(DIR2, 'config.js') }, PORT2, DIR2);
   const owner = { Authorization: 'Bearer TOKEN_OWNER_xxxxxxxxxxxxxxxx' };
   const stranger = { Authorization: 'Bearer TOKEN_STRANGER_xxxxxxxxxxxxx' };
 
@@ -172,6 +174,29 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('S11 Ungültige IDs abgelehnt/gefiltert, kaputte URL crasht den Server nicht',
       p1.status === 400 && p2.status === 400 && p3.status === 200 && Object.keys(hist.json.history).join() === 'A1' && alive === 200,
       `__proto__=${p1.status}, ../=${p2.status}, History-Keys=${Object.keys(hist.json.history)}, Server lebt=${alive === 200}, Antwort auf kaputte URL: ${rawReply.split('\r\n')[0]}`);
+  }
+
+  // S12 Web-App wird mit ausgeliefert (ohne Anmeldung), config.js aus data/, kein Ausbruch aus dem Web-Ordner
+  {
+    const get = async (p) => { const r = await fetch(BASE2 + p, { redirect: 'manual' }); return { status: r.status, headers: r.headers, text: await r.text() }; };
+    const raw = (target) => new Promise(res => {
+      let out = ''; const sock = require('net').connect(PORT2, '127.0.0.1', () => sock.write(`GET ${target} HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n`));
+      sock.on('data', d => out += d); sock.on('close', () => res(out.split('\r\n')[0])); sock.on('error', () => res('ERR'));
+    });
+    const root = await get('/');
+    const index = await get('/music-shuffle/');
+    const core = await get('/music-shuffle/js/core.js');
+    const cfg = await get('/music-shuffle/config.js');
+    const trav1 = await raw('/music-shuffle/%2e%2e/sync-server/sync-server.js');
+    const trav2 = await raw('/music-shuffle/../CLAUDE.md');
+    const dot = await get('/music-shuffle/.git/config');
+    const h = await req('GET', '/api/health', undefined, {}, BASE2);
+    const appVersion = /const APP_VERSION = '([\d.]+)'/.exec(core.text)?.[1];
+    check('S12 Web-App: /music-shuffle/ ausgeliefert, config.js aus data/, Health = App-Version, kein Pfad-Ausbruch',
+      root.status === 301 && root.headers.get('location') === '/music-shuffle/' && index.status === 200 && /<html/.test(index.text)
+        && index.headers.get('x-frame-options') === 'DENY' && /javascript/.test(core.headers.get('content-type'))
+        && cfg.text.includes('aus-data') && /404/.test(trav1) && /404/.test(trav2) && dot.status === 404 && h.json.version === appVersion,
+      `/ → ${root.status} ${root.headers.get('location')}, index ${index.status}, config: ${cfg.text.slice(0, 40)}…, %2e%2e → ${trav1}, ../ → ${trav2}, .git → ${dot.status}, health ${h.json.version} = App ${appVersion}`);
   }
 
   srv.kill('SIGTERM'); await new Promise(r => srv.on('exit', r));

@@ -1,8 +1,12 @@
 # Your personal config — contains Client ID
 config.js
 
-# Sync server data directory
+# Laufzeitdaten + Konfiguration der Installation (Volume ./data — nie ins Git)
+data/
 sync-server/data/
+.env
+update.log
+.update.lock
 
 # OS files
 .DS_Store
