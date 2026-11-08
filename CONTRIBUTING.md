@@ -43,7 +43,8 @@ Schrift: **Verdana** — kein Webfont, keine externen Requests.
 | `i18n.js` | Übersetzungen DE/EN |
 | `style.css` | Alle Styles (nutzt Sideforge-Tokens) |
 | `sideforge-tokens.css` | Design System Tokens |
-| `sync-server/` | Optionaler Node.js Sync-Server (`sync-server.js` + `Dockerfile` + Anleitung) |
+| `sync-server/` | Sync-Server, liefert auch die Web-App aus (`sync-server.js` + Referenz) |
+| `Dockerfile`, `docker-compose.yml`, `deploy/` | Container + Update-Skript für die Synology (siehe `DEPLOY.md`) |
 | `tests/` | Automatische Tests (Logik, Sync-Server, UI) — nicht auf den Webserver |
 
 ---

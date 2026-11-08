@@ -7,6 +7,25 @@
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
   {
+    version: '1.7.0',
+    date: '2026-11-08',
+    label: { de: 'Updates per git pull', en: 'Updates via git pull' },
+    added: {
+      de: [
+        'Ein Docker-Container für Web-App und Sync-Server — die Synology holt neue Versionen selbst von GitHub (deploy/update.sh, Aufgabenplaner)',
+        'Update-Hinweis: Hat der Server eine neuere Version, erscheint neben der Versionsnummer „vX laden ↻“',
+      ],
+      en: [
+        'One Docker container for web app and sync server — the Synology pulls new versions from GitHub itself (deploy/update.sh, task scheduler)',
+        'Update notice: if the server has a newer version, "Load vX ↻" appears next to the version number',
+      ],
+    },
+    changed: {
+      de: ['Laufzeitdaten und Konfiguration (config.js, .env) liegen gemeinsam in data/ und werden bei Updates nie überschrieben'],
+      en: ['Runtime data and configuration (config.js, .env) live together in data/ and are never overwritten by updates'],
+    },
+  },
+  {
     version: '1.6.5',
     date: '2026-11-08',
     label: { de: 'Filter für Alben', en: 'Filters for Albums' },

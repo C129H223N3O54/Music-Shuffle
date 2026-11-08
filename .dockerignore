@@ -1,0 +1,13 @@
+.git
+.gitignore
+.gitattributes
+data
+tests
+deploy
+node_modules
+*.md
+*.log
+config.js
+config.example.js
+docker-compose.yml
+Dockerfile

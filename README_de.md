@@ -2,7 +2,7 @@
 
 > Shuffle durch deine liebsten Spotify-Artists und Genres — kein Algorithmus, nur deine Auswahl.
 
-[![Version](https://img.shields.io/badge/version-1.6.5-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Vanilla JS](https://img.shields.io/badge/Gebaut%20mit-Vanilla%20JS-yellow)
 ![Spotify API](https://img.shields.io/badge/Spotify-Web%20API%20%2B%20SDK-1DB954)
@@ -218,11 +218,15 @@ music-shuffle/
 ├── favicon.ico             # ICO Favicon
 ├── icons/                  # PWA Icons (96–512px, maskable, Apple Touch)
 ├── sync-server/
-│   ├── sync-server.js      # Optionaler Node.js Sync-Server
-│   ├── Dockerfile          # Docker Image
-│   └── SYNC-SERVER.md      # Sync-Server Setup-Anleitung
-├── tests/                  # Automatische Tests (nur fürs Repo, nicht auf den Webserver)
-├── DEPLOYMENT.md           # Deployment-Anleitung
+│   ├── sync-server.js      # Sync-Server + Auslieferung der Web-App (ein Container)
+│   └── SYNC-SERVER.md      # Sync-Server-Referenz
+├── Dockerfile              # Image: Web-App + Sync-Server
+├── docker-compose.yml      # Compose-Projekt „music-shuffle“, ./data als Volume
+├── deploy/
+│   ├── update.sh           # git pull + Neubau (Synology-Aufgabenplaner)
+│   └── env.example         # Vorlage für data/.env
+├── tests/                  # Automatische Tests
+├── DEPLOY.md               # Deployment auf der Synology per git pull + Docker
 ├── CONTRIBUTING.md         # Beitrags-Richtlinien
 ├── README.md               # Englische Dokumentation
 ├── README.de.md            # Diese Datei
@@ -240,7 +244,7 @@ music-shuffle/
 | GitHub Pages | In `gh-pages` Branch pushen — HTTPS inklusive |
 | Netlify | Ordner drag & drop — HTTPS inklusive |
 | Vercel | `vercel deploy` — HTTPS inklusive |
-| Synology NAS | Siehe [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Synology NAS (Docker) | Ein Container für Web-App + Sync-Server, Updates per `git pull` — siehe [DEPLOY.md](DEPLOY.md) |
 
 ---
 
@@ -248,7 +252,7 @@ music-shuffle/
 
 Der optionale Sync-Server hält deine Artist-Listen, Wiedergabe-Statistiken und den Album-Cache auf allen Geräten synchron. Ein minimaler Node.js HTTP-Server — keine Datenbank nötig.
 
-Docker-Setup in wenigen Minuten. Siehe [sync-server/SYNC-SERVER.md](sync-server/SYNC-SERVER.md).
+Läuft im selben Docker-Container wie die Web-App — siehe [DEPLOY.md](DEPLOY.md) und [sync-server/SYNC-SERVER.md](sync-server/SYNC-SERVER.md).
 
 ```
 Desktop (PWA)  ←→  Sync-Server  ←→  Mobil (PWA)

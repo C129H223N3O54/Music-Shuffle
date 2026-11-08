@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] — 2026-11-08 — Updates via git pull
+
+New deployment: the Synology pulls the repo and rebuilds the Docker container — no more uploading files. Step-by-step guide (German): [DEPLOY.md](DEPLOY.md).
+
+### Added
+- **One container for everything** — `sync-server.js` now also serves the web app under `/music-shuffle/` (`WEB_DIR`), with security headers, no path traversal, no dotfiles. `config.js` is served from `DATA_DIR`, so the installation's configuration lives next to its data. Same port as before (`127.0.0.1:3001`), same URLs, no change to the Spotify redirect URI.
+- **`Dockerfile` + `docker-compose.yml`** at the repo root — project `music-shuffle`, `restart: unless-stopped`, `./data` as volume, `TZ=Europe/Berlin`, `env_file: ./data/.env`, runs as user `node`, health check.
+- **`deploy/update.sh`** — `git pull --ff-only` (system git or a throw-away `alpine/git` container), rebuilds only when the commit changed (or `--force`), creates `data/` and `data/.env` before starting (Synology does not create bind-mount folders), `docker compose -p music-shuffle up -d --build` (fallback `docker-compose`), `docker image prune -f`, timestamped log with old/new commit, health check, lock against parallel runs. One log line when nothing changed.
+- **Update notice in the app** — `/api/health` reports the served app version (`APP_VERSION` from `js/core.js`); the app checks on start, every 30 min and when the tab becomes visible, and offers "vX laden ↻" next to the version number (updates the service worker, clears caches, reloads).
+- `.gitattributes` (`* text=auto eol=lf`) so shell scripts never get Windows line endings; `.dockerignore`; `deploy/env.example`.
+- **Tests:** `tests/deploy.test.js` runs `update.sh` against a test remote with a Docker stub (no change → nothing; change → pull + build; `--force`; git via `alpine/git`; data/ preserved; non-fast-forward aborts; lock; Dockerfile contains everything the app loads). `S12` (web app delivery, traversal), `U23` (update notice), `L18` (release checklist: `CACHE_NAME`, badges, changelogs match `APP_VERSION`).
+
+### Changed
+- `.gitignore`: `data/`, `.env`, `update.log`, `.update.lock`.
+- `sync-server/Dockerfile` removed (replaced by the root `Dockerfile`); `DEPLOYMENT.md` (Web Station upload) replaced by `DEPLOY.md`; `SYNC-SERVER.md` is now a reference.
+
+---
+
 ## [1.6.5] — 2026-11-08 — Filters for Albums
 
 ### Fixed

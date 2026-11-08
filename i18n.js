@@ -175,6 +175,8 @@ const I18N = (() => {
       toast_stats_reset: 'Statistiken zurückgesetzt',
       toast_playlist_creating: 'Playlist wird erstellt…',
       toast_playlist_relogin: 'Keine Playlist-Berechtigung — bitte einmal ab- und wieder anmelden',
+      msg_update_available: 'v{v} laden ↻',
+      tip_update: 'Neue Version verfügbar – neu laden',
       // ── Tooltips (v1.6.1) ──
       tip_prev: 'Zurück (P)',
       tip_repeat: 'Wiederholen',
@@ -437,6 +439,8 @@ const I18N = (() => {
       toast_stats_reset: 'Stats reset',
       toast_playlist_creating: 'Creating playlist…',
       toast_playlist_relogin: 'No playlist permission — please log out and back in once',
+      msg_update_available: 'Load v{v} ↻',
+      tip_update: 'New version available – reload',
       // ── Tooltips (v1.6.1) ──
       tip_prev: 'Previous (P)',
       tip_repeat: 'Repeat',

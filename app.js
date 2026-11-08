@@ -67,6 +67,10 @@ async function bootApp() {
   updateLangBtn();
   const verEl = document.getElementById('app-version');
   if (verEl) verEl.textContent = APP_VERSION;
+  // Neue Version auf dem Server? Beim Start, alle 30 min und wenn der Tab wieder sichtbar wird
+  checkForUpdate();
+  setInterval(checkForUpdate, 30 * 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
 
   const synced = await Sync.load();
   if (synced) console.log('[Sync] Synced');
@@ -283,6 +287,7 @@ function bindAllEvents() {
   document.getElementById('close-changelog')?.addEventListener('click', () => document.getElementById('modal-changelog').classList.add('hidden'));
 
   // Language
+  document.getElementById('update-btn')?.addEventListener('click', applyUpdate);
   document.getElementById('lang-btn')?.addEventListener('click', () => {
     I18N.setLang(I18N.getLang() === 'de' ? 'en' : 'de');
   });

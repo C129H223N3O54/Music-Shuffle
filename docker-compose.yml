@@ -1,0 +1,22 @@
+# Music Shuffle — Start/Update: sh deploy/update.sh  (siehe DEPLOY.md)
+# Projektname: music-shuffle (update.sh ruft "docker compose -p music-shuffle …" auf)
+services:
+  music-shuffle:
+    build: .
+    image: music-shuffle:latest
+    container_name: music-shuffle
+    restart: unless-stopped
+    ports:
+      # wie bisher: nur lokal auf dem NAS, von außen über den Synology-Reverse-Proxy
+      - "127.0.0.1:3001:3001"
+    env_file:
+      # ALLOWED_USERS, ALLOWED_ORIGINS — legt update.sh beim ersten Mal aus deploy/env.example an
+      - ./data/.env
+    environment:
+      - TZ=Europe/Berlin
+      - PORT=3001
+      - DATA_DIR=/data
+      - WEB_DIR=/app/web
+    volumes:
+      # Laufzeitdaten (Listen, Stats, Caches, History) + config.js + .env — nie im Git
+      - ./data:/data

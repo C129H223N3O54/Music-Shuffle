@@ -217,6 +217,40 @@ function toggleTheme() {
   applyTheme(State.theme);
 }
 
+// ── UPDATE-HINWEIS ────────────────────────────────────────────────────────────
+// Der Server meldet unter /api/health die Version der App, die er gerade ausliefert.
+// Ist sie neuer als die geladene (APP_VERSION), erscheint neben der Versionsnummer
+// „vX laden ↻". Klick: Service-Worker aktualisieren, Caches leeren, neu laden.
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(n => parseInt(n, 10) || 0), pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0) ? 1 : -1;
+  }
+  return 0;
+}
+
+async function checkForUpdate() {
+  const btn = document.getElementById('update-btn');
+  if (!btn) return;
+  const base = (Sync.url || location.origin).replace(/\/+$/, '');
+  try {
+    const res = await fetch(`${base}/api/health`, { cache: 'no-store' });
+    const health = res.ok ? await res.json() : null;
+    const newer = health?.version && /^[\d.]+$/.test(health.version) && compareVersions(health.version, APP_VERSION) > 0;
+    btn.classList.toggle('hidden', !newer);
+    if (newer) btn.textContent = I18N.t('msg_update_available', { v: health.version });
+  } catch { /* Server nicht erreichbar — kein Hinweis */ }
+}
+
+async function applyUpdate() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    await reg?.update();
+    if (window.caches) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+  } catch { /* egal — Neuladen holt die neue Version ohnehin (network-first) */ }
+  location.reload();
+}
+
 // ── CHANGELOG-DIALOG ──────────────────────────────────────────────────────────
 function showChangelog() {
   const modal   = document.getElementById('modal-changelog');

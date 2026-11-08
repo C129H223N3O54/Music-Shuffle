@@ -314,6 +314,16 @@ async function setupPage(context, { preloadAuth = true } = {}) {
   check('U21 Englische Oberfläche ohne deutsche Reste oder rohe Schlüssel', !en.rawKeys && !en.german && en.toasts[0] === 'List "New list" created',
     JSON.stringify(en));
 
+  // Update-Hinweis: Server meldet neuere Version → „vX laden ↻"
+  await page.route(SYNC + '/api/health', r => r.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ status: 'ok', version: '99.0.0', auth: 'on' }) }));
+  const upd = await page.evaluate(async () => { await checkForUpdate(); const b = document.getElementById('update-btn'); return { hidden: b.classList.contains('hidden'), text: b.textContent }; });
+  await page.unroute(SYNC + '/api/health');
+  await page.route(SYNC + '/api/health', r => r.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ status: 'ok', version: '1.0.0', auth: 'on' }) }));
+  const same = await page.evaluate(async () => { await checkForUpdate(); return document.getElementById('update-btn').classList.contains('hidden'); });
+  await page.unroute(SYNC + '/api/health');
+  check('U23 Neuere Server-Version → Button „v99.0.0 laden ↻“, ältere/gleiche → kein Button', !upd.hidden && upd.text === 'v99.0.0 laden ↻' && same,
+    `${JSON.stringify(upd)}, bei älterer Version versteckt: ${same}`);
+
   // Changelog-Dialog
   errors.length = 0;
   const cl = await page.evaluate(() => { showChangelog(); const c = document.getElementById('changelog-content').textContent; document.getElementById('modal-changelog').classList.add('hidden'); return { top: c.includes('v' + APP_VERSION), removed: c.includes('Entfernt') }; });
