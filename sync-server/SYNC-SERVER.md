@@ -40,7 +40,7 @@ Im Container fest gesetzt (`docker-compose.yml`): `PORT=3001`, `DATA_DIR=/data`,
 window.SPOTIFY_CONFIG = {
     clientId:    'DEINE_CLIENT_ID',
     redirectUri: 'https://deine-domain.de:8443/music-shuffle/',
-    syncUrl:     'https://sync.deine-domain.de:9443',
+    syncUrl:     'https://deine-domain.de:8443',   // gleiche Adresse wie die App — der Container beantwortet /api/
     syncStats:   true,
 };
 ```
