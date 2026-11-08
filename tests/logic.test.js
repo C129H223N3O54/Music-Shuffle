@@ -248,6 +248,21 @@ const pickN = async (api, n, args) => { const out = []; for (let i = 0; i < n; i
     check('L15 Sync-Requests mit Authorization: Bearer <Spotify-Token>', r && c?.headers?.Authorization === 'Bearer AT', `Header: ${c?.headers?.Authorization}`);
   }
 
+  // L17 — Album-Einträge der Liste halten die Listen-Filter ein (z.B. Bonus-Live-Disc)
+  {
+    const { api } = makeApi([
+      [/\/albums\/TS\/tracks/, () => resp(200, { items: [track('S1', 'Ministry Of Saints'), track('S2', 'Sex Fire Religion'), track('L1', 'Catch Of The Century - Live in Los Angeles'), track('L2', 'Babylon (Live)')] })],
+      [/\/albums\/LV\/tracks/, () => resp(200, { items: [track('V1', 'Intro - Live'), track('V2', 'Opener - Live')] })],
+    ]);
+    const ts = album('TS', 'Tinnitus Sanctus (Special Edition)', 4), lv = album('LV', 'Fucking With Fire - Live', 2);
+    const seen = new Set();
+    for (let i = 0; i < 60; i++) seen.add((await api.getRandomTrackFromAlbum('TS', ts, new Set(), new Set(), false, new Set(), { noLive: true }))?.id);
+    const live = await api.getRandomTrackFromAlbum('LV', lv, new Set(), new Set(), false, new Set(), { noLive: true });
+    check('L17 Album-Einträge: Live-Filter greift, reines Live-Album bleibt spielbar',
+      !seen.has('L1') && !seen.has('L2') && seen.has('S1') && seen.has('S2') && !!live,
+      `gezogen: ${[...seen].join(',')}; bewusst hinzugefügtes Live-Album: ${live?.name}`);
+  }
+
   // L16 — Jeder in der App benutzte Übersetzungsschlüssel existiert auf Deutsch UND Englisch
   {
     const root = path.join(__dirname, '..');

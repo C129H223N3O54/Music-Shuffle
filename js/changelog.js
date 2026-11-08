@@ -7,6 +7,21 @@
 // ── CHANGELOG ─────────────────────────────────────────────────────────────────
 const CHANGELOG = [
   {
+    version: '1.6.5',
+    date: '2026-11-08',
+    label: { de: 'Filter für Alben', en: 'Filters for Albums' },
+    fixed: {
+      de: [
+        'Alben in der Liste haben die Filter ignoriert — z.B. kamen Live-Bonustracks einer Special Edition trotz „Keine Live-Alben"',
+        'Nach dem Ändern eines Filters wird die Queue neu gefüllt (vorher liefen die schon vorgeladenen Titel noch mit den alten Filtern)',
+      ],
+      en: [
+        'Albums in a list ignored the filters — e.g. live bonus tracks of a special edition played despite "No live albums"',
+        'Changing a filter now refills the queue (previously pre-loaded tracks still followed the old filters)',
+      ],
+    },
+  },
+  {
     version: '1.6.4',
     date: '2026-10-23',
     label: { de: 'Artist-Wiederholung repariert', en: 'Artist Repeat Fixed' },
