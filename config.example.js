@@ -29,7 +29,7 @@ window.SPOTIFY_CONFIG = {
     // Leave as null to disable (lists stored locally only)
     // See sync-server/SYNC-SERVER.md for setup
     syncUrl: null,
-    // syncUrl: 'https://sync.your-domain.com',
+    // syncUrl: 'https://your-domain.com:8443',  // same address as the app (container serves /api/)
     // syncUrl: 'http://192.168.1.100:3001',  // local network
 
     // Optional: sync play statistics across devices (requires syncUrl)

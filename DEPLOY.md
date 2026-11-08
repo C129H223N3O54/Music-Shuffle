@@ -15,7 +15,7 @@ Updates laufen ohne Hochladen: Der Code liegt auf GitHub, die Synology holt ihn 
 | Container | `music-shuffle` (Compose-Projekt `music-shuffle`, `restart: unless-stopped`) |
 | Port | `127.0.0.1:3001` — wie bisher, nur lokal; von außen über den Synology-Reverse-Proxy |
 | App | `https://shuffle.jem.rocks:8443/music-shuffle/` (Web-App wird jetzt vom Container ausgeliefert) |
-| Sync-API | `https://sync.jem.rocks:9443/api/…` (gleicher Container, gleicher Port) |
+| Sync-API | `https://shuffle.jem.rocks:8443/api/…` — gleicher Container, gleiche Adresse wie die App |
 | Update | `sh /volume1/docker/music-shuffle/deploy/update.sh` (Aufgabenplaner, siehe unten) |
 
 **Ein Container für alles:** Web-App (`/music-shuffle/`) und Sync-Server (`/api/…`) laufen zusammen. Ein Neubau aktualisiert beide — du musst nichts mehr in die Web Station hochladen.
@@ -80,11 +80,17 @@ docker run --rm -v /volume1/docker:/git -w /git alpine/git clone https://github.
 mkdir -p /volume1/docker/music-shuffle/data && cp -a /volume1/docker/artist-shuffle-sync.alt/data/. /volume1/docker/music-shuffle/data/
 ```
 
-**5. Konfiguration der App übernehmen** (`config.js` aus dem bisherigen Web-Ordner):
+**5. Konfiguration der App übernehmen** (`config.js` aus dem bisherigen Web-Ordner) und die Sync-Adresse auf die App-Adresse umstellen — der Container beantwortet `/api/` selbst, eine eigene Sync-Subdomain ist nicht mehr nötig:
 
 ```
 cp /volume1/web/music-shuffle/config.js /volume1/docker/music-shuffle/data/config.js
 ```
+
+```
+sed -i "s#https://sync.jem.rocks:9443#https://shuffle.jem.rocks:8443#" /volume1/docker/music-shuffle/data/config.js && grep syncUrl /volume1/docker/music-shuffle/data/config.js
+```
+
+Erwartet: `syncUrl: 'https://shuffle.jem.rocks:8443'`
 
 **6. Zugriff auf den Sync-Server festlegen:**
 
@@ -116,11 +122,11 @@ Erwartet: `HTTP/1.1 200 OK`.
    - Quelle: Protokoll `HTTPS`, Hostname `shuffle.jem.rocks`, Port `8443`
    - Ziel: Protokoll `HTTP`, Hostname `localhost`, Port `3001`
 3. Systemsteuerung → Sicherheit → Zertifikat → **Einstellungen**: dem neuen Eintrag `shuffle.jem.rocks:8443` das passende Zertifikat zuweisen.
-4. Der Eintrag `sync.jem.rocks:9443 → localhost:3001` bleibt wie er ist.
+4. Einen alten Eintrag für eine eigene Sync-Adresse (z.B. `sync.jem.rocks:9443`) löschen — erst **nachdem** `syncUrl` in `data/config.js` auf die App-Adresse zeigt (Schritt 5).
 
 Die Adresse der App bleibt `https://shuffle.jem.rocks:8443/music-shuffle/` — die Redirect-URI im Spotify-Dashboard muss **nicht** geändert werden.
 
-**10. Im Browser testen**, dann den alten Web-Ordner wegräumen:
+**10. Im Browser testen** (Strg+F5, Sync-Symbol muss grün sein), dann den alten Web-Ordner wegräumen:
 
 ```
 mv /volume1/web/music-shuffle /volume1/web/music-shuffle.alt

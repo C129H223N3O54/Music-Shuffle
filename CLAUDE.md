@@ -26,6 +26,6 @@ node tests/run-all.js
 
 ## Deployment (NAS) — siehe `DEPLOY.md`
 - Pfad `/volume1/docker/music-shuffle` (git-Klon), Update: `sh deploy/update.sh` (Aufgabenplaner „Music Shuffle Update“, root). Kein git auf der NAS → `alpine/git`-Container.
-- App: `https://shuffle.jem.rocks:8443/music-shuffle/`, Sync-API: `https://sync.jem.rocks:9443` → beide Reverse Proxy auf `localhost:3001`.
+- App: `https://shuffle.jem.rocks:8443/music-shuffle/`, Sync-API unter derselben Adresse (`/api/…`, `syncUrl` = App-Adresse) → Reverse Proxy auf `localhost:3001`. Die frühere Subdomain `sync.jem.rocks` gibt es nicht mehr.
 - `data/.env`: `ALLOWED_USERS=kampfmade`, `ALLOWED_ORIGINS=https://shuffle.jem.rocks:8443`.
 - SSH-Befehle für JEM immer in EINER Zeile (keine `\`-Umbrüche).
