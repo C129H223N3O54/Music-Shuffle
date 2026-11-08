@@ -574,8 +574,12 @@ const SpotifyAPI = (() => {
   // Einzelnes Album aus der Liste. played = Song-Sperre des Album-Artists: Songs, die
   // schon gespielt wurden (auch als Single/auf anderem Album), werden übersprungen,
   // solange das Album noch andere hat. artistId wird mitgegeben, damit die App sperrt.
-  async function getRandomTrackFromAlbum(albumId, albumData, blacklist=new Set(), history=new Set(), onlyNew=false, played=new Set()) {
-    let tracks = _applyFilters(await _getCachedTracks(albumId, albumData), {}, blacklist);
+  // filters = Filter der Liste (Live, Akustik, …). Bleibt nach dem Filtern nichts übrig
+  // (z.B. ein bewusst hinzugefügtes Live-Album), wird ungefiltert gezogen.
+  async function getRandomTrackFromAlbum(albumId, albumData, blacklist=new Set(), history=new Set(), onlyNew=false, played=new Set(), filters={}) {
+    const all = await _getCachedTracks(albumId, albumData);
+    let tracks = _applyFilters(all, filters, blacklist);
+    if (!tracks.length) tracks = _applyFilters(all, {}, blacklist);
     if (onlyNew) { const f=tracks.filter(t=>!history.has(t.id)); if(f.length) tracks=f; }
     if (played.size) {
       const playedKeys = new Set();

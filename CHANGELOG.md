@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.5] — 2026-11-08 — Filters for Albums
+
+### Fixed
+- **Album entries ignored the list filters** — `getRandomTrackFromAlbum()` filtered with `{}`, so e.g. the live bonus disc of a special edition ("Catch Of The Century - Live in Los Angeles" on *Tinnitus Sanctus*) played despite "No live albums". Album picks now use the list's filters; if nothing is left (an album that is live as a whole and was added on purpose), the album stays playable unfiltered.
+- **Queue after filter changes** — pre-loaded tracks were drawn with the old filters. Changing a filter now empties the queue and refills it.
+
+### Tests
+- `L17`: album entries respect the live filter; a pure live album added on purpose stays playable.
+
+---
+
 ## [1.6.4] — 2026-10-23 — Artist Repeat Fixed
 
 ### Fixed

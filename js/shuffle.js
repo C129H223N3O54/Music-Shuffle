@@ -117,7 +117,7 @@ async function fetchTrackFor(source, list) {
   const lock = filters.noRepeat !== false;
   if (source.type === 'album') {
     const played = lock ? new Set(State.artistTrackHistory[source.data.artistId] || []) : new Set();
-    const track = await SpotifyAPI.getRandomTrackFromAlbum(source.data.id, source.data, blacklist, State.historyIds, State.onlyNew, played);
+    const track = await SpotifyAPI.getRandomTrackFromAlbum(source.data.id, source.data, blacklist, State.historyIds, State.onlyNew, played, filters);
     return { track, artistName: source.data.artistName, reason: '💿 Album' };
   }
   const artist = source.data;

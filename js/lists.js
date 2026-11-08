@@ -559,6 +559,13 @@ function saveFilters() {
     yearTo:          parseInt(document.getElementById('filter-year-to').value,   10) || null,
   };
   LS.save(); updateFiltersBadge(list.filters);
+  // Vorgeladene Titel wurden mit den alten Filtern gezogen → Queue neu füllen
+  if (State.queue.length) {
+    State.queue = [];
+    renderQueue();
+    clearTimeout(saveFilters._refill);
+    saveFilters._refill = setTimeout(() => fillQueue(), 1500);
+  }
 }
 
 function updateFiltersBadge(f) {
